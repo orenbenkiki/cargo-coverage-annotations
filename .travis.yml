@@ -1,0 +1,21 @@
+# Rust project
+language: rust
+cache: cargo
+
+rust:
+- 1.13.0
+- stable
+- beta
+- nightly
+matrix:
+  allow-failures:
+  - rust: nightly
+
+before-script:
+- which cargo-todox || cargo-install cargo-todox
+
+# Build & Test
+script:
+- cargo todox
+- cargo build --verbose
+- cargo test --verbose
