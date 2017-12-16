@@ -12,10 +12,10 @@ matrix:
   - rust: nightly
 
 before-script:
-- which cargo-todox || cargo-install cargo-todox
+- which cargo-todox || cargo-install cargo-todox # ALLOW TODOX
 
 # Build & Test
 script:
-- cargo todox
+- cargo todox # ALLOW TODOX
 - cargo build --verbose
 - cargo test --verbose
