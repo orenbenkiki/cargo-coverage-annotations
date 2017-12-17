@@ -1,6 +1,6 @@
 [package]
 name = "cargo-coverage-annotations"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Oren Ben-Kiki <oren@ben-kiki.org>"]
 description = "Ensure annotations in code match actual coverage."
 repository = "https://github.com/orenbenkiki/cargo-coverage-annotations"
@@ -10,4 +10,5 @@ categories =[ "development-tools::build-utils", "development-tools::cargo-plugin
 license = "GPL-3.0"
 
 [dependencies]
+version = "^2.0.1"
 xml-rs = "^0.7.0"

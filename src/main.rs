@@ -16,6 +16,8 @@
 
 //! Ensure annotations in code match actual coverage.
 
+#[macro_use]
+extern crate version;
 extern crate xml;
 
 use std::collections::HashMap;
@@ -61,10 +63,7 @@ enum FileAnnotations {
 }
 
 fn main() {
-    if std::env::args().count() > 2 {
-        print!("cargo coverage-annotations takes no arguments.\n");
-        std::process::exit(1);
-    }
+    process_args();
 
     let coverage_annotations = collect_coverage_annotations();
 
@@ -402,5 +401,50 @@ fn report_uncovered_file_annotations(file_name: &str,
             eprintln!("{}: missing FILE NOT TESTED coverage annotation", file_name);
             true
         }
+    }
+}
+
+fn process_args() {
+    let count = std::env::args().count();
+    let mut args = std::env::args();
+    let mut are_args_valid = true;
+    let mut should_print_version = false;
+
+    args.nth(0);
+    match count {
+        1 => {}
+        2 => {
+            match args.nth(0).unwrap().as_ref() {
+                "--version" => {
+                    should_print_version = true;
+                }
+                "coverage-annotations" => {}
+                _ => {
+                    are_args_valid = false;
+                }
+            }
+        }
+        3 => {
+            if args.nth(0).unwrap() == "coverage-annotations" &&
+                args.nth(0).unwrap() == "--version"
+            {
+                should_print_version = true;
+            } else {
+                are_args_valid = false;
+            }
+        }
+        _ => {
+            are_args_valid = false;
+        }
+    }
+
+    if !are_args_valid {
+        print!("cargo-coverage-annotations takes no arguments (except --version).\n");
+        std::process::exit(1);
+    }
+
+    if should_print_version {
+        println!("cargo-coverage-annotations {}", version!());
+        std::process::exit(0);
     }
 }
