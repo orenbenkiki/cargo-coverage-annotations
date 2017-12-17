@@ -1,6 +1,6 @@
 # Rust project
 language: rust
-cache: cargo
+# cache: cargo
 
 rust:
 - 1.21.0
