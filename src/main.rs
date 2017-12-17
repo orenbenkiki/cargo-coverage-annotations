@@ -228,7 +228,7 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
             }
 
             (LineMark::FileMaybeTested, region_annotation) => {
-                if is_file_not_tested or is_file_maybe_tested {
+                if is_file_not_tested || is_file_maybe_tested {
                     eprintln!("{}:{}: repeated FILE MAYBE TESTED coverage annotation",
                               path.to_str().unwrap(),
                               line_number);
@@ -238,7 +238,7 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
             }
 
             (LineMark::FileNotTested, region_annotation) => {
-                if is_file_not_tested or is_file_maybe_tested {
+                if is_file_not_tested || is_file_maybe_tested {
                     eprintln!("{}:{}: repeated FILE NOT TESTED coverage annotation",
                               path.to_str().unwrap(),
                               line_number);

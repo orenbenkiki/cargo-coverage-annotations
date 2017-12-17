@@ -3,15 +3,15 @@ language: rust
 cache: cargo
 
 rust:
-- 1.13.0
-- stable
-- beta
-- nightly
+- 1.21.0
+# - stable
+# - beta
+# - nightly
 matrix:
   allow-failures:
   - rust: nightly
 
-before-script:
+before_script:
 - which cargo-todox || cargo-install cargo-todox # ALLOW TODOX
 
 # Build & Test
