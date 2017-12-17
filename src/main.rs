@@ -34,6 +34,7 @@ enum LineMark {
     BeginNotTested,
     EndMaybeTested,
     EndNotTested,
+    FileMaybeTested,
     FileNotTested,
 }
 
@@ -55,6 +56,7 @@ fn is_explicit(line_annotation: &LineAnnotation) -> bool {
 
 enum FileAnnotations {
     LineAnnotations(Vec<LineAnnotation>),
+    MaybeTested,
     NotTested,
 }
 
@@ -147,6 +149,7 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
     let mut region_annotation = LineAnnotation::Tested(false);
     let mut line_number = 0;
     let mut is_file_not_tested = false;
+    let mut is_file_maybe_tested = false;
     let mut line_annotations = Vec::new();
     for line in file.lines() {
         line_number += 1;
@@ -224,8 +227,18 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
                 (region_annotation.clone(), region_annotation)
             }
 
+            (LineMark::FileMaybeTested, region_annotation) => {
+                if is_file_not_tested or is_file_maybe_tested {
+                    eprintln!("{}:{}: repeated FILE MAYBE TESTED coverage annotation",
+                              path.to_str().unwrap(),
+                              line_number);
+                }
+                is_file_maybe_tested = true;
+                (region_annotation.clone(), region_annotation)
+            }
+
             (LineMark::FileNotTested, region_annotation) => {
-                if is_file_not_tested {
+                if is_file_not_tested or is_file_maybe_tested {
                     eprintln!("{}:{}: repeated FILE NOT TESTED coverage annotation",
                               path.to_str().unwrap(),
                               line_number);
@@ -237,7 +250,10 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
         line_annotations.push(line_annotation);
         region_annotation = next_region_annotation;
     }
-    if is_file_not_tested {
+    if is_file_maybe_tested {
+        verify_untested_file_annotations(path, &line_annotations);
+        Ok(FileAnnotations::MaybeTested)
+    } else if is_file_not_tested {
         verify_untested_file_annotations(path, &line_annotations);
         Ok(FileAnnotations::NotTested)
     } else {
@@ -272,6 +288,8 @@ fn extract_line_mark(line: &str) -> LineMark {
         LineMark::EndMaybeTested
     } else if line.ends_with("// END NOT TESTED") {
         LineMark::EndNotTested
+    } else if line.ends_with("// FILE MAYBE TESTED") {
+        LineMark::FileMaybeTested
     } else if line.ends_with("// FILE NOT TESTED") {
         LineMark::FileNotTested
     } else {
@@ -307,6 +325,7 @@ fn report_file_wrong_annotations(file_name: &str,
                                  source_file_annotation: &FileAnnotations)
                                  -> bool {
     match *source_file_annotation {
+        FileAnnotations::MaybeTested => true,
         FileAnnotations::NotTested => {
             eprintln!("{}: wrong FILE NOT TESTED coverage annotation", file_name);
             false
@@ -377,6 +396,7 @@ fn report_uncovered_file_annotations(file_name: &str,
                                      source_file_annotations: &FileAnnotations)
                                      -> bool {
     match *source_file_annotations {
+        FileAnnotations::MaybeTested => false,
         FileAnnotations::NotTested => false,
         FileAnnotations::LineAnnotations(_) => {
             eprintln!("{}: missing FILE NOT TESTED coverage annotation", file_name);
