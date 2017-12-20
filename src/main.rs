@@ -65,62 +65,48 @@ enum FileAnnotations {
 fn main() {
     process_args();
 
-    let coverage_annotations = collect_coverage_annotations();
-
-    let mut source_annotations = HashMap::new();
-    collect_dir_annotations(Path::new("src"), &mut source_annotations).unwrap();
-
-    let exit_status = report_wrong_annotations(&coverage_annotations, &source_annotations);
-    std::process::exit(exit_status);
-}
-
-fn collect_coverage_annotations() -> HashMap<String, HashMap<i32, bool>> {
-    let mut annotations = HashMap::new();
-    let file = File::open("cobertura.xml").expect("can't open cobertura.xml");
-    let file = BufReader::new(file);
-    let parser = EventReader::new(file);
-    let mut file_name = String::from("unknown");
-    for event in parser {
-        match event.unwrap() {
-            XmlEvent::StartElement { ref name,
-                                     ref attributes,
-                                     .. } => {
-                if name.local_name == "class" {
-                    for attribute in attributes {
-                        if attribute.name.local_name == "filename" {
-                            file_name = attribute.value.clone();
-                            annotations.insert(file_name.clone(), HashMap::new());
-                        }
-                    }
-
-                }
-                if name.local_name == "line" {
-                    let mut line_number = -1;
-                    let mut hits_count = -1;
-                    for attribute in attributes {
-                        if attribute.name.local_name == "number" {
-                            line_number = attribute.value.parse().unwrap();
-                        } else if attribute.name.local_name == "hits" {
-                            hits_count = attribute.value.parse().unwrap();
-                        }
-                    }
-                    if line_number > 0 {
-                        if hits_count == 0 {
-                            annotations.get_mut(&file_name)
-                                       .unwrap()
-                                       .insert(line_number, false);
-                        } else if line_number > 0 {
-                            annotations.get_mut(&file_name)
-                                       .unwrap()
-                                       .insert(line_number, true);
-                        }
-                    }
-                }
-            }
-            _ => {}
+    let mut xml_file = None;
+    find_xml_file(Path::new("."), &mut xml_file).unwrap();
+    match xml_file {
+        None => { panic!("no cobertura.xml file found"); }
+        Some(ref xml_file) => {
+            let coverage_annotations = collect_coverage_annotations(xml_file);
+            let mut source_annotations = HashMap::new();
+            collect_dir_annotations(Path::new("src"), &mut source_annotations).unwrap();
+            let exit_status = report_wrong_annotations(&coverage_annotations, &source_annotations);
+            std::process::exit(exit_status);
         }
     }
-    annotations
+}
+
+fn find_xml_file(dir: &Path, xml_file: &mut Option<String>) -> std::io::Result<()> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            find_xml_file(&path, xml_file)?;
+        } else {
+            let canonical = fs::canonicalize(path).unwrap();
+            let file_name = canonical.as_path().to_str().unwrap();
+            if file_name.ends_with("/cobertura.xml") {
+                match xml_file {
+                    &mut Some(ref old_file_name) => {
+                        let file_is_merged = file_name.contains("merged");
+                        let old_file_is_merged = old_file_name.contains("merged");
+                        if old_file_is_merged == file_is_merged {
+                            panic!("can't decide between: {} and {}", old_file_name, file_name);
+                        }
+                        if old_file_is_merged {
+                            continue;
+                        }
+                    }
+                    _ => {}
+                }
+                *xml_file = Some(file_name.to_string());
+            }
+        }
+    }
+    Ok(())
 }
 
 fn collect_dir_annotations(dir: &Path,
@@ -132,10 +118,11 @@ fn collect_dir_annotations(dir: &Path,
         if path.is_dir() {
             collect_dir_annotations(&path, file_annotations)?;
         } else {
-            let file_name = path.to_str().unwrap().to_string();
+            let canonical = fs::canonicalize(path).unwrap();
+            let file_name = canonical.as_path().to_str().unwrap();
             if file_name.ends_with(".rs") {
-                let annotations = collect_file_annotations(&path)?;
-                file_annotations.insert(file_name, annotations);
+                let annotations = collect_file_annotations(&canonical.as_path())?;
+                file_annotations.insert(file_name.to_string(), annotations);
             }
         }
     }
@@ -296,12 +283,64 @@ fn extract_line_mark(line: &str) -> LineMark {
     }
 }
 
+fn collect_coverage_annotations(xml_file: &str) -> HashMap<String, HashMap<i32, bool>> {
+    let mut annotations = HashMap::new();
+    let file = File::open(xml_file).expect(format!("can't open {}", xml_file).as_ref());
+    let file = BufReader::new(file);
+    let parser = EventReader::new(file);
+    let mut file_name = String::from("unknown");
+    for event in parser {
+        match event.unwrap() {
+            XmlEvent::StartElement { ref name,
+                                     ref attributes,
+                                     .. } => {
+                if name.local_name == "class" {
+                    for attribute in attributes {
+                        if attribute.name.local_name == "filename" {
+                            let canonical = fs::canonicalize(attribute.value.clone()).unwrap();
+                            file_name = canonical.as_path().to_str().unwrap().to_string();
+                            annotations.insert(file_name.clone(), HashMap::new());
+                        }
+                    }
+
+                }
+                if name.local_name == "line" {
+                    let mut line_number = -1;
+                    let mut hits_count = -1;
+                    for attribute in attributes {
+                        if attribute.name.local_name == "number" {
+                            line_number = attribute.value.parse().unwrap();
+                        } else if attribute.name.local_name == "hits" {
+                            hits_count = attribute.value.parse().unwrap();
+                        }
+                    }
+                    if line_number > 0 {
+                        if hits_count == 0 {
+                            annotations.get_mut(&file_name)
+                                       .unwrap()
+                                       .insert(line_number, false);
+                        } else if line_number > 0 {
+                            annotations.get_mut(&file_name)
+                                       .unwrap()
+                                       .insert(line_number, true);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    annotations
+}
+
 fn report_wrong_annotations(coverage_annotations: &HashMap<String, HashMap<i32, bool>>,
                             source_annotations: &HashMap<String, FileAnnotations>)
                             -> i32 {
+    let canonical = fs::canonicalize("src").unwrap();
+    let src = canonical.as_path().to_str().unwrap();
     let mut exit_status = 0;
     for (file_name, coverage_line_annotations) in coverage_annotations {
-        if file_name.starts_with("src/") &&
+        if file_name.starts_with(src) &&
             report_file_wrong_annotations(file_name,
                                           coverage_line_annotations,
                                           source_annotations.get(file_name).unwrap())
