@@ -65,64 +65,30 @@ enum FileAnnotations {
 fn main() {
     process_args();
 
-    let mut xml_file = None;
-    find_xml_file(Path::new("."), &mut xml_file).unwrap();
-    match xml_file {
-        None => { panic!("no cobertura.xml file found"); }
-        Some(ref xml_file) => {
-            let coverage_annotations = collect_coverage_annotations(xml_file);
-            let mut source_annotations = HashMap::new();
-            collect_dir_annotations(Path::new("src"), &mut source_annotations).unwrap();
-            let exit_status = report_wrong_annotations(&coverage_annotations, &source_annotations);
-            std::process::exit(exit_status);
-        }
-    }
-}
-
-fn find_xml_file(dir: &Path, xml_file: &mut Option<String>) -> std::io::Result<()> {
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        if path.is_dir() {
-            find_xml_file(&path, xml_file)?;
-        } else {
-            let canonical = fs::canonicalize(path).unwrap();
-            let file_name = canonical.as_path().to_str().unwrap();
-            if file_name.ends_with("/cobertura.xml") {
-                match xml_file {
-                    &mut Some(ref old_file_name) => {
-                        let file_is_merged = file_name.contains("merged");
-                        let old_file_is_merged = old_file_name.contains("merged");
-                        if old_file_is_merged == file_is_merged {
-                            panic!("can't decide between: {} and {}", old_file_name, file_name);
-                        }
-                        if old_file_is_merged {
-                            continue;
-                        }
-                    }
-                    _ => {}
-                }
-                *xml_file = Some(file_name.to_string());
-            }
-        }
-    }
-    Ok(())
+    let mut coverage_annotations = HashMap::new();
+    let mut source_annotations = HashMap::new();
+    collect_dir_annotations(Path::new("."), &mut source_annotations, &mut coverage_annotations).unwrap();
+    let exit_status = report_wrong_annotations(&coverage_annotations, &source_annotations);
+    std::process::exit(exit_status);
 }
 
 fn collect_dir_annotations(dir: &Path,
-                           file_annotations: &mut HashMap<String, FileAnnotations>)
+                           source_annotations: &mut HashMap<String, FileAnnotations>,
+                           coverage_annotations: &mut HashMap<String, HashMap<i32, bool>>)
                            -> std::io::Result<()> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
         if path.is_dir() {
-            collect_dir_annotations(&path, file_annotations)?;
+            collect_dir_annotations(&path, source_annotations, coverage_annotations)?;
         } else {
             let canonical = fs::canonicalize(path).unwrap();
             let file_name = canonical.as_path().to_str().unwrap();
-            if file_name.ends_with(".rs") {
+            if file_name.ends_with("/cobertura.xml") {
+                collect_coverage_annotations(&canonical.as_path(), coverage_annotations);
+            } else if file_name.ends_with(".rs") {
                 let annotations = collect_file_annotations(&canonical.as_path())?;
-                file_annotations.insert(file_name.to_string(), annotations);
+                source_annotations.insert(file_name.to_string(), annotations);
             }
         }
     }
@@ -130,7 +96,7 @@ fn collect_dir_annotations(dir: &Path,
 }
 
 fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
-    let file = File::open(path)?;
+    let file = File::open(path).expect(format!("can't open {}", path.to_str().unwrap()).as_ref());
     let file = BufReader::new(file);
     let mut region_annotation = LineAnnotation::Tested(false);
     let mut line_number = 0;
@@ -283,9 +249,8 @@ fn extract_line_mark(line: &str) -> LineMark {
     }
 }
 
-fn collect_coverage_annotations(xml_file: &str) -> HashMap<String, HashMap<i32, bool>> {
-    let mut annotations = HashMap::new();
-    let file = File::open(xml_file).expect(format!("can't open {}", xml_file).as_ref());
+fn collect_coverage_annotations(path: &Path, coverage_annotations: &mut HashMap<String, HashMap<i32, bool>>) {
+    let file = File::open(path).expect(format!("can't open {}", path.to_str().unwrap()).as_ref());
     let file = BufReader::new(file);
     let parser = EventReader::new(file);
     let mut file_name = String::from("unknown");
@@ -299,7 +264,7 @@ fn collect_coverage_annotations(xml_file: &str) -> HashMap<String, HashMap<i32, 
                         if attribute.name.local_name == "filename" {
                             let canonical = fs::canonicalize(attribute.value.clone()).unwrap();
                             file_name = canonical.as_path().to_str().unwrap().to_string();
-                            annotations.insert(file_name.clone(), HashMap::new());
+                            coverage_annotations.entry(file_name.clone()).or_insert(HashMap::new());
                         }
                     }
 
@@ -316,11 +281,12 @@ fn collect_coverage_annotations(xml_file: &str) -> HashMap<String, HashMap<i32, 
                     }
                     if line_number > 0 {
                         if hits_count == 0 {
-                            annotations.get_mut(&file_name)
+                            coverage_annotations.get_mut(&file_name)
                                        .unwrap()
-                                       .insert(line_number, false);
+                                       .entry(line_number)
+                                       .or_insert(false);
                         } else if line_number > 0 {
-                            annotations.get_mut(&file_name)
+                            coverage_annotations.get_mut(&file_name)
                                        .unwrap()
                                        .insert(line_number, true);
                         }
@@ -330,7 +296,6 @@ fn collect_coverage_annotations(xml_file: &str) -> HashMap<String, HashMap<i32, 
             _ => {}
         }
     }
-    annotations
 }
 
 fn report_wrong_annotations(coverage_annotations: &HashMap<String, HashMap<i32, bool>>,

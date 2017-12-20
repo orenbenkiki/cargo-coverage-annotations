@@ -12,30 +12,30 @@ cargo install cargo-coverage-annotations
 
 ## Running
 
-### Creating a coverage XML files
+### Creating coverage XML file(s)
 
-To run on a cargo project in the current working directory, first generate a
-`cobertura.xml` file anywhere under the current working directory. This can be
-done in one of _way_ too many ways, as there's no standard rust `cargo coverage`
-for now.
+To run on a cargo project in the current working directory, first generate
+`cobertura.xml` files(s) anywhere under the current working directory. This can
+be done in one of _way_ too many ways, as there's no standard rust `cargo
+coverage` for now.
 
 Two options I have tested and you might want to consider are:
 
-* `cargo tarpaulin --out Xml` will generate the `cobertura.xml` file in the top
-  level directory. This is much simpler to use than `kcov`, without requiring
-  `cargo make` and strange heuristics for selecting the `cobertura.xml` file.
+* `cargo tarpaulin --out Xml` will generate a single `cobertura.xml` file in the
+  top level directory. This is much simpler to use than `kcov`, without
+  requiring `cargo make`.
 
   However, as of version 0.5.5, `tarpaulin` is still buggy. For example, it
   tends to complain `} else {` lines are not covered, even though both branches
   of the `if` statement are covered. This will require you to insert spurious
   coverage annotations to the source code, which defeats their purpose.
 
-* `cargo make coverage` will by default use `kcov` to generate a `cobertura.xml`
-  file nested in the bowels of `target/coverage/...`. This requires installing
-  `cargo make`, which I found to be more convenient than trying to create the
-  magical incantations for running `kcov` myself. TODO: Create a sample
-  `Makefile.toml` that automates running the coverage and then verifying the
-  annotations, in a single `cargo make` command.
+* `cargo make coverage` will by default use `kcov` to generate several
+  `cobertura.xml` files nested in the bowels of `target/coverage/...`. This
+  requires installing `cargo make`, which I found to be more convenient than
+  trying to create the magical incantations for running `kcov` myself. TODO:
+  Create a sample `Makefile.toml` that automates running the coverage and then
+  verifying the annotations, in a single `cargo make` command.
 
   Note that `cargo make` version 0.7.11 insists all your files in the `tests`
   directory be named `test_*.rs`, and that there will be at least one such test
@@ -43,12 +43,8 @@ Two options I have tested and you might want to consider are:
 
   Note that `kcov` also returns wrong coverage results, at least sometimes, at
   least for `rust`, at least for now. It seems like it isn't as bad as
-  `tarpaulin`, but you'll still need to add some spurious coverage annotations
-  to the source.
-
-  At any rate, `kcov` creates several `cobertura.xml` files. To choose between
-  multiple candidate files, `cargo-coverage-annotations` will select the one
-  whose path contains the word `merged`. This is admittedly a hack.
+  `tarpaulin`, but you still might need to add (very few) spurious coverage
+  annotations to the source.
 
 Of course, other tools generate other coverage file formats, and place them in
 different places. If you look at https://codecov.io/bash you will see >1K lines
@@ -58,8 +54,10 @@ surprised, and pull requests are welcome ;-)
 
 ### Verifying the coverage annotations
 
-To verify that the coverage annotations in the code match the actual
-coverage, run `cargo coverage-annotations`.
+To verify that the coverage annotations in the code match the actual coverage,
+run `cargo coverage-annotations`. This will merge the coverage information from
+all the `cobertura.xml` files, and compare the results with the coverage
+annotation comments (see below).
 
 ## Checking coverage annotations on a CI server
 
