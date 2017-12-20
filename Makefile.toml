@@ -15,7 +15,7 @@ command = "cargo"
 args = ["todox"]  # ALLOW TODOX
 
 [tasks.pre-ci-flow]
-run_task = "todox"
+run_task = "todox"  # ALLOW TODOX
 
 [tasks.init-build-flow]
-run_task = "todox"
+run_task = "todox"  # ALLOW TODOX
