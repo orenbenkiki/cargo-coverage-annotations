@@ -1,0 +1,21 @@
+# TODO: Add this to the ci-flow when rustfmt starts working on Travis.
+[tasks.verify-format]
+description = "Verify the code is formatted as expected by rustfmt."
+install_crate = "rustfmt-nightly"
+command = "cargo"
+args = ["fmt", "--", "--write-mode", "diff"]
+
+[tasks.format]
+dependencies = ["format-nightly"]
+
+[tasks.todox]  # ALLOW TODOX
+description = "Verify the code does not contain leftover TODOX."  # ALLOW TODOX
+install_crate = "cargo-todox"  # ALLOW TODOX
+command = "cargo"
+args = ["todox"]  # ALLOW TODOX
+
+[tasks.pre-ci-flow]
+run_task = "todox"
+
+[tasks.init-build-flow]
+run_task = "todox"

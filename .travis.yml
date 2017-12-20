@@ -1,9 +1,8 @@
-# Rust project
 language: rust
 cache: cargo
 
 rust:
-- 1.20.0
+- 1.22.0
 - stable
 - beta
 - nightly
@@ -12,10 +11,7 @@ matrix:
   - rust: nightly
 
 before_script:
-- which cargo-todox || cargo install cargo-todox # ALLOW TODOX
+- which cargo-make || cargo install cargo-make
 
-# Build & Test
 script:
-- cargo todox # ALLOW TODOX
-- cargo build --verbose
-- cargo test --verbose
+- cargo make ci-flow

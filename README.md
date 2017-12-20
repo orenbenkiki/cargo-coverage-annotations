@@ -33,9 +33,7 @@ Two options I have tested and you might want to consider are:
 * `cargo make coverage` will by default use `kcov` to generate several
   `cobertura.xml` files nested in the bowels of `target/coverage/...`. This
   requires installing `cargo make`, which I found to be more convenient than
-  trying to create the magical incantations for running `kcov` myself. TODO:
-  Create a sample `Makefile.toml` that automates running the coverage and then
-  verifying the annotations, in a single `cargo make` command.
+  trying to create the magical incantations for running `kcov` myself.
 
   Note that `cargo make` version 0.7.11 insists all your files in the `tests`
   directory be named `test_*.rs`, and that there will be at least one such test
@@ -59,7 +57,41 @@ run `cargo coverage-annotations`. This will merge the coverage information from
 all the `cobertura.xml` files, and compare the results with the coverage
 annotation comments (see below).
 
-## Checking coverage annotations on a CI server
+### Integration with cargo make
+
+If you use `cargo make`, here is one way to
+integrate `cargo coverage-annotations` into your workflow:
+
+```toml
+[tasks.coverage-annotations-flow]
+description = "Runs the full coverage-annotations flow."
+dependencies = ["test", "coverage", "coverage-annotations"]
+
+[tasks.coverage-annotations]
+description = "Verify the coverage annotations in the code"
+install_crate = "cargo-coverage-annotations"
+command = "cargo"
+args = ["coverage-annotations"]
+
+[tasks.pre-coverage]
+run_task = "test"
+
+[tasks.post-coverage]
+run_task = "coverage-annotations"
+
+[tasks.post-test]
+run_task = "coverage-annotations-flow"
+
+[tasks.format]
+dependencies = ["format-nightly"]
+```
+
+This will automatically verify the annotations in a new `cargo make
+coverage-annotations-flow`, as well as as a part of `cargo make
+coverage-flow`, and everything that invokes it (e.g., `cargo make
+dev-test-flow`, `cargo make build-flow`, and `cargo make ci-flow`).
+
+### Checking coverage annotations on a CI server
 
 To keep your code base clean, it can be helpful to fail the CI build when the
 code contains wrong coverage annotations. To achieve this, include `cargo
