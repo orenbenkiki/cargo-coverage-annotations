@@ -16,10 +16,12 @@
 
 //! Ensure annotations in code match actual coverage.
 
+extern crate regex;
 #[macro_use]
 extern crate version;
 extern crate xml;
 
+use regex::Regex;
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader};
@@ -103,11 +105,19 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
     let mut is_file_not_tested = false;
     let mut is_file_maybe_tested = false;
     let mut line_annotations = Vec::new();
+    let untrusted_regex = Regex::new(r"^\s*\}(?:\)*;?|\s*else\s*\{)$").unwrap();
     for line in file.lines() {
         line_number += 1;
-        let line_mark = extract_line_mark(line.unwrap().as_ref());
+        let line_text = line.unwrap();
+        let line_mark = extract_line_mark(line_text.as_ref());
         let (line_annotation, next_region_annotation) = match (line_mark, region_annotation) {
-            (LineMark::None, region_annotation) => (region_annotation.clone(), region_annotation),
+            (LineMark::None, region_annotation) => {
+                if untrusted_regex.is_match(line_text.as_ref()) {
+                    (LineAnnotation::MaybeTested(false), region_annotation)
+                } else {
+                    (region_annotation.clone(), region_annotation)
+                }
+            }
 
             (LineMark::LineTested, LineAnnotation::Tested(_)) => {
                 eprintln!("{}:{}: redundant TESTED coverage annotation",

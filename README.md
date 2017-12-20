@@ -25,10 +25,9 @@ Two options I have tested and you might want to consider are:
   top level directory. This is much simpler to use than `kcov`, without
   requiring `cargo make`.
 
-  However, as of version 0.5.5, `tarpaulin` is still buggy. For example, it
-  tends to complain `} else {` lines are not covered, even though both branches
-  of the `if` statement are covered. This will require you to insert spurious
-  coverage annotations to the source code, which defeats their purpose.
+  Note that as of version 0.5.5, `tarpaulin` is still not 100% reliable. This
+  might require you to insert spurious coverage annotations to the source code,
+  which defeats their purpose.
 
 * `cargo make coverage` will by default use `kcov` to generate several
   `cobertura.xml` files nested in the bowels of `target/coverage/...`. This
@@ -39,10 +38,13 @@ Two options I have tested and you might want to consider are:
   directory be named `test_*.rs`, and that there will be at least one such test
   file (in addition to any `#[test]` functions you might have in the sources).
 
-  Note that `kcov` also returns wrong coverage results, at least sometimes, at
-  least for `rust`, at least for now. It seems like it isn't as bad as
-  `tarpaulin`, but you still might need to add (very few) spurious coverage
-  annotations to the source.
+  Note that `kcov`, as of version 34, also returns wrong coverage results, at
+  least sometimes, at least for `rust`. It seems to be more robust than
+  `tarpaulin`, though.
+
+To combat the flakiness in the coverage reporting tools, reported coverage is
+ignored for lines that contain only `\s*})*;?` or only `\s*} else {`. This seems
+to avoid the worst false coverage offenders; YMMV.
 
 Of course, other tools generate other coverage file formats, and place them in
 different places. If you look at https://codecov.io/bash you will see >1K lines
