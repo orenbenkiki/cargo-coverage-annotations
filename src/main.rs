@@ -69,15 +69,21 @@ fn main() {
 
     let mut coverage_annotations = HashMap::new();
     let mut source_annotations = HashMap::new();
-    collect_dir_annotations(Path::new("."), &mut source_annotations, &mut coverage_annotations).unwrap();
+    collect_dir_annotations(
+        Path::new("."),
+        &mut source_annotations,
+        &mut coverage_annotations,
+    )
+    .unwrap();
     let exit_status = report_wrong_annotations(&coverage_annotations, &source_annotations);
     std::process::exit(exit_status);
 }
 
-fn collect_dir_annotations(dir: &Path,
-                           source_annotations: &mut HashMap<String, FileAnnotations>,
-                           coverage_annotations: &mut HashMap<String, HashMap<i32, bool>>)
-                           -> std::io::Result<()> {
+fn collect_dir_annotations(
+    dir: &Path,
+    source_annotations: &mut HashMap<String, FileAnnotations>,
+    coverage_annotations: &mut HashMap<String, HashMap<i32, bool>>,
+) -> std::io::Result<()> {
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -98,16 +104,14 @@ fn collect_dir_annotations(dir: &Path,
 }
 
 fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
-    let file = File::open(path).expect(format!("can't open {}", path.to_str().unwrap()).as_ref());
+    let file = File::open(path).unwrap_or_else(|_| panic!("can't open {}", path.to_str().unwrap()));
     let file = BufReader::new(file);
     let mut region_annotation = LineAnnotation::Tested(false);
-    let mut line_number = 0;
     let mut is_file_not_tested = false;
     let mut is_file_maybe_tested = false;
     let mut line_annotations = Vec::new();
     let untrusted_regex = Regex::new(r"^\s*\}(?:\)*;?|\s*else\s*\{)$").unwrap();
-    for line in file.lines() {
-        line_number += 1;
+    for (line_number, line) in file.lines().enumerate() {
         let line_text = line.unwrap();
         let line_mark = extract_line_mark(line_text.as_ref());
         let (line_annotation, next_region_annotation) = match (line_mark, region_annotation) {
@@ -120,9 +124,11 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
             }
 
             (LineMark::LineTested, LineAnnotation::Tested(_)) => {
-                eprintln!("{}:{}: redundant TESTED coverage annotation",
-                          path.to_str().unwrap(),
-                          line_number);
+                eprintln!(
+                    "{}:{}: redundant TESTED coverage annotation",
+                    path.to_str().unwrap(),
+                    line_number
+                );
                 (LineAnnotation::Tested(true), LineAnnotation::Tested(false))
             }
             (LineMark::LineTested, region_annotation) => {
@@ -130,70 +136,94 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
             }
 
             (LineMark::LineNotTested, LineAnnotation::NotTested(_)) => {
-                eprintln!("{}:{}: redundant NOT TESTED coverage annotation",
-                          path.to_str().unwrap(),
-                          line_number);
-                (LineAnnotation::NotTested(true), LineAnnotation::NotTested(false))
+                eprintln!(
+                    "{}:{}: redundant NOT TESTED coverage annotation",
+                    path.to_str().unwrap(),
+                    line_number
+                );
+                (
+                    LineAnnotation::NotTested(true),
+                    LineAnnotation::NotTested(false),
+                )
             }
             (LineMark::LineNotTested, region_annotation) => {
                 (LineAnnotation::NotTested(true), region_annotation)
             }
 
             (LineMark::LineMaybeTested, LineAnnotation::MaybeTested(_)) => {
-                eprintln!("{}:{}: redundant MAYBE TESTED coverage annotation",
-                          path.to_str().unwrap(),
-                          line_number);
-                (LineAnnotation::MaybeTested(true), LineAnnotation::MaybeTested(false))
+                eprintln!(
+                    "{}:{}: redundant MAYBE TESTED coverage annotation",
+                    path.to_str().unwrap(),
+                    line_number
+                );
+                (
+                    LineAnnotation::MaybeTested(true),
+                    LineAnnotation::MaybeTested(false),
+                )
             }
             (LineMark::LineMaybeTested, region_annotation) => {
                 (LineAnnotation::MaybeTested(true), region_annotation)
             }
 
-            (LineMark::BeginNotTested, LineAnnotation::Tested(_)) => {
-                (LineAnnotation::NotTested(false), LineAnnotation::NotTested(false))
-            }
+            (LineMark::BeginNotTested, LineAnnotation::Tested(_)) => (
+                LineAnnotation::NotTested(false),
+                LineAnnotation::NotTested(false),
+            ),
             (LineMark::BeginNotTested, region_annotation) => {
-                eprintln!("{}:{}: ignored nested BEGIN NOT TESTED coverage annotation",
-                          path.to_str().unwrap(),
-                          line_number);
+                eprintln!(
+                    "{}:{}: ignored nested BEGIN NOT TESTED coverage annotation",
+                    path.to_str().unwrap(),
+                    line_number
+                );
                 (region_annotation.clone(), region_annotation)
             }
 
-            (LineMark::BeginMaybeTested, LineAnnotation::Tested(_)) => {
-                (LineAnnotation::MaybeTested(false), LineAnnotation::MaybeTested(false))
-            }
+            (LineMark::BeginMaybeTested, LineAnnotation::Tested(_)) => (
+                LineAnnotation::MaybeTested(false),
+                LineAnnotation::MaybeTested(false),
+            ),
             (LineMark::BeginMaybeTested, region_annotation) => {
-                eprintln!("{}:{}: ignored nested BEGIN MAYBE TESTED coverage annotation",
-                          path.to_str().unwrap(),
-                          line_number);
+                eprintln!(
+                    "{}:{}: ignored nested BEGIN MAYBE TESTED coverage annotation",
+                    path.to_str().unwrap(),
+                    line_number
+                );
                 (region_annotation.clone(), region_annotation)
             }
 
-            (LineMark::EndNotTested, LineAnnotation::NotTested(_)) => {
-                (LineAnnotation::NotTested(false), LineAnnotation::Tested(false))
-            }
+            (LineMark::EndNotTested, LineAnnotation::NotTested(_)) => (
+                LineAnnotation::NotTested(false),
+                LineAnnotation::Tested(false),
+            ),
             (LineMark::EndNotTested, region_annotation) => {
-                eprintln!("{}:{}: ignored nested END NOT TESTED coverage annotation",
-                          path.to_str().unwrap(),
-                          line_number);
+                eprintln!(
+                    "{}:{}: ignored nested END NOT TESTED coverage annotation",
+                    path.to_str().unwrap(),
+                    line_number
+                );
                 (region_annotation.clone(), region_annotation)
             }
 
-            (LineMark::EndMaybeTested, LineAnnotation::MaybeTested(_)) => {
-                (LineAnnotation::MaybeTested(false), LineAnnotation::Tested(false))
-            }
+            (LineMark::EndMaybeTested, LineAnnotation::MaybeTested(_)) => (
+                LineAnnotation::MaybeTested(false),
+                LineAnnotation::Tested(false),
+            ),
             (LineMark::EndMaybeTested, region_annotation) => {
-                eprintln!("{}:{}: ignored nested END MAYBE TESTED coverage annotation",
-                          path.to_str().unwrap(),
-                          line_number);
+                eprintln!(
+                    "{}:{}: ignored nested END MAYBE TESTED coverage annotation",
+                    path.to_str().unwrap(),
+                    line_number
+                );
                 (region_annotation.clone(), region_annotation)
             }
 
             (LineMark::FileMaybeTested, region_annotation) => {
                 if is_file_not_tested || is_file_maybe_tested {
-                    eprintln!("{}:{}: repeated FILE MAYBE TESTED coverage annotation",
-                              path.to_str().unwrap(),
-                              line_number);
+                    eprintln!(
+                        "{}:{}: repeated FILE MAYBE TESTED coverage annotation",
+                        path.to_str().unwrap(),
+                        line_number
+                    );
                 }
                 is_file_maybe_tested = true;
                 (region_annotation.clone(), region_annotation)
@@ -201,9 +231,11 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
 
             (LineMark::FileNotTested, region_annotation) => {
                 if is_file_not_tested || is_file_maybe_tested {
-                    eprintln!("{}:{}: repeated FILE NOT TESTED coverage annotation",
-                              path.to_str().unwrap(),
-                              line_number);
+                    eprintln!(
+                        "{}:{}: repeated FILE NOT TESTED coverage annotation",
+                        path.to_str().unwrap(),
+                        line_number
+                    );
                 }
                 is_file_not_tested = true;
                 (region_annotation.clone(), region_annotation)
@@ -223,14 +255,14 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
     }
 }
 
-fn verify_untested_file_annotations(path: &Path, line_annotations: &Vec<LineAnnotation>) {
-    let mut line_number = 0;
-    for line_annotation in line_annotations {
-        line_number += 1;
+fn verify_untested_file_annotations(path: &Path, line_annotations: &[LineAnnotation]) {
+    for (line_number, line_annotation) in line_annotations.iter().enumerate() {
         if is_explicit(line_annotation) {
-            eprintln!("{}:{}: line coverage annotation in a FILE which is NOT TESTED",
-                      path.to_str().unwrap(),
-                      line_number);
+            eprintln!(
+                "{}:{}: line coverage annotation in a FILE which is NOT TESTED",
+                path.to_str().unwrap(),
+                line_number
+            );
         }
     }
 }
@@ -259,84 +291,94 @@ fn extract_line_mark(line: &str) -> LineMark {
     }
 }
 
-fn collect_coverage_annotations(path: &Path, coverage_annotations: &mut HashMap<String, HashMap<i32, bool>>) {
-    let file = File::open(path).expect(format!("can't open {}", path.to_str().unwrap()).as_ref());
+fn collect_coverage_annotations(
+    path: &Path,
+    coverage_annotations: &mut HashMap<String, HashMap<i32, bool>>,
+) {
+    let file = File::open(path).unwrap_or_else(|_| panic!("can't open {}", path.to_str().unwrap()));
     let file = BufReader::new(file);
     let parser = EventReader::new(file);
     let mut file_name = String::from("unknown");
     for event in parser {
-        match event.unwrap() {
-            XmlEvent::StartElement { ref name,
-                                     ref attributes,
-                                     .. } => {
-                if name.local_name == "class" {
-                    for attribute in attributes {
-                        if attribute.name.local_name == "filename" {
-                            let canonical = fs::canonicalize(attribute.value.clone()).unwrap();
-                            file_name = canonical.as_path().to_str().unwrap().to_string();
-                            coverage_annotations.entry(file_name.clone()).or_insert(HashMap::new());
-                        }
-                    }
-
-                }
-                if name.local_name == "line" {
-                    let mut line_number = -1;
-                    let mut hits_count = -1;
-                    for attribute in attributes {
-                        if attribute.name.local_name == "number" {
-                            line_number = attribute.value.parse().unwrap();
-                        } else if attribute.name.local_name == "hits" {
-                            hits_count = attribute.value.parse().unwrap();
-                        }
-                    }
-                    if line_number > 0 {
-                        if hits_count == 0 {
-                            coverage_annotations.get_mut(&file_name)
-                                       .unwrap()
-                                       .entry(line_number)
-                                       .or_insert(false);
-                        } else if line_number > 0 {
-                            coverage_annotations.get_mut(&file_name)
-                                       .unwrap()
-                                       .insert(line_number, true);
-                        }
+        if let XmlEvent::StartElement {
+            ref name,
+            ref attributes,
+            ..
+        } = event.unwrap()
+        {
+            if name.local_name == "class" {
+                for attribute in attributes {
+                    if attribute.name.local_name == "filename" {
+                        let canonical = fs::canonicalize(attribute.value.clone()).unwrap();
+                        file_name = canonical.as_path().to_str().unwrap().to_string();
+                        coverage_annotations
+                            .entry(file_name.clone())
+                            .or_insert_with(HashMap::new);
                     }
                 }
             }
-            _ => {}
-        }
+            if name.local_name == "line" {
+                let mut line_number = -1;
+                let mut hits_count = -1;
+                for attribute in attributes {
+                    if attribute.name.local_name == "number" {
+                        line_number = attribute.value.parse().unwrap();
+                    } else if attribute.name.local_name == "hits" {
+                        hits_count = attribute.value.parse().unwrap();
+                    }
+                }
+                if line_number > 0 {
+                    if hits_count == 0 {
+                        coverage_annotations
+                            .get_mut(&file_name)
+                            .unwrap()
+                            .entry(line_number)
+                            .or_insert(false);
+                    } else if line_number > 0 {
+                        coverage_annotations
+                            .get_mut(&file_name)
+                            .unwrap()
+                            .insert(line_number, true);
+                    }
+                }
+            }
+        };
     }
 }
 
-fn report_wrong_annotations(coverage_annotations: &HashMap<String, HashMap<i32, bool>>,
-                            source_annotations: &HashMap<String, FileAnnotations>)
-                            -> i32 {
+fn report_wrong_annotations(
+    coverage_annotations: &HashMap<String, HashMap<i32, bool>>,
+    source_annotations: &HashMap<String, FileAnnotations>,
+) -> i32 {
     let canonical = fs::canonicalize("src").unwrap();
     let src = canonical.as_path().to_str().unwrap();
     let mut exit_status = 0;
     for (file_name, coverage_line_annotations) in coverage_annotations {
-        if file_name.starts_with(src) &&
-            report_file_wrong_annotations(file_name,
-                                          coverage_line_annotations,
-                                          source_annotations.get(file_name).unwrap())
+        if file_name.starts_with(src)
+            && report_file_wrong_annotations(
+                file_name,
+                coverage_line_annotations,
+                source_annotations.get(file_name).unwrap(),
+            )
         {
             exit_status = 1;
         }
     }
     for (file_name, source_file_annotations) in source_annotations {
-        if coverage_annotations.get(file_name).is_none() {
-            if report_uncovered_file_annotations(file_name, source_file_annotations) {
-                exit_status = 1;
-            }
+        if coverage_annotations.get(file_name).is_none()
+            && report_uncovered_file_annotations(file_name, source_file_annotations)
+        {
+            exit_status = 1;
         }
     }
     exit_status
 }
 
-fn report_file_wrong_annotations(file_name: &str,
-                                 coverage_file_annotations: &HashMap<i32, bool>,
-                                 source_file_annotation: &FileAnnotations)
-                                 -> bool {
+fn report_file_wrong_annotations(
+    file_name: &str,
+    coverage_file_annotations: &HashMap<i32, bool>,
+    source_file_annotation: &FileAnnotations,
+) -> bool {
     match *source_file_annotation {
         FileAnnotations::MaybeTested => true,
         FileAnnotations::NotTested => {
@@ -345,16 +387,14 @@ fn report_file_wrong_annotations(file_name: &str,
         }
         FileAnnotations::LineAnnotations(ref source_line_annotations) => {
             let mut has_wrong_annotation = false;
-            let mut line_number = 0;
-            for source_line_annotation in source_line_annotations {
-                line_number += 1;
-                let coverage_line_annotation = coverage_file_annotations.get(&line_number);
+            for (line_number, source_line_annotation) in source_line_annotations.iter().enumerate()
+            {
+                let coverage_line_annotation = coverage_file_annotations.get(&(line_number as i32));
                 match (source_line_annotation, coverage_line_annotation) {
                     (&LineAnnotation::Tested(_), Some(&false)) => {
                         eprintln!(
                             "{}:{}: wrong TESTED coverage annotation",
-                            file_name,
-                            line_number,
+                            file_name, line_number,
                         );
                         has_wrong_annotation = true;
                     }
@@ -362,8 +402,7 @@ fn report_file_wrong_annotations(file_name: &str,
                     (&LineAnnotation::NotTested(_), Some(&true)) => {
                         eprintln!(
                             "{}:{}: wrong NOT TESTED coverage annotation",
-                            file_name,
-                            line_number,
+                            file_name, line_number,
                         );
                         has_wrong_annotation = true;
                     }
@@ -371,8 +410,7 @@ fn report_file_wrong_annotations(file_name: &str,
                     (&LineAnnotation::Tested(true), None) => {
                         eprintln!(
                             "{}:{}: explicit TESTED coverage annotation for a non-executable line",
-                            file_name,
-                            line_number,
+                            file_name, line_number,
                         );
                         has_wrong_annotation = true;
                     }
@@ -380,9 +418,8 @@ fn report_file_wrong_annotations(file_name: &str,
                     (&LineAnnotation::NotTested(true), None) => {
                         eprintln!(
                             "{}:{}: \
-                            explicit NOT TESTED coverage annotation for a non-executable line",
-                            file_name,
-                            line_number,
+                             explicit NOT TESTED coverage annotation for a non-executable line",
+                            file_name, line_number,
                         );
                         has_wrong_annotation = true;
                     }
@@ -390,9 +427,8 @@ fn report_file_wrong_annotations(file_name: &str,
                     (&LineAnnotation::MaybeTested(true), None) => {
                         eprintln!(
                             "{}:{}: \
-                            explicit MAYBE TESTED coverage annotation for a non-executable line",
-                            file_name,
-                            line_number,
+                             explicit MAYBE TESTED coverage annotation for a non-executable line",
+                            file_name, line_number,
                         );
                         has_wrong_annotation = true;
                     }
@@ -405,9 +441,10 @@ fn report_file_wrong_annotations(file_name: &str,
     }
 }
 
-fn report_uncovered_file_annotations(file_name: &str,
-                                     source_file_annotations: &FileAnnotations)
-                                     -> bool {
+fn report_uncovered_file_annotations(
+    file_name: &str,
+    source_file_annotations: &FileAnnotations,
+) -> bool {
     match *source_file_annotations {
         FileAnnotations::MaybeTested => false,
         FileAnnotations::NotTested => false,
@@ -427,20 +464,17 @@ fn process_args() {
     args.nth(0);
     match count {
         1 => {}
-        2 => {
-            match args.nth(0).unwrap().as_ref() {
-                "--version" => {
-                    should_print_version = true;
-                }
-                "coverage-annotations" => {}
-                _ => {
-                    are_args_valid = false;
-                }
+        2 => match args.nth(0).unwrap().as_ref() {
+            "--version" => {
+                should_print_version = true;
             }
-        }
+            "coverage-annotations" => {}
+            _ => {
+                are_args_valid = false;
+            }
+        },
         3 => {
-            if args.nth(0).unwrap() == "coverage-annotations" &&
-                args.nth(0).unwrap() == "--version"
+            if args.nth(0).unwrap() == "coverage-annotations" && args.nth(0).unwrap() == "--version"
             {
                 should_print_version = true;
             } else {
@@ -453,7 +487,7 @@ fn process_args() {
     }
 
     if !are_args_valid {
-        print!("cargo-coverage-annotations takes no arguments (except --version).\n");
+        println!("cargo-coverage-annotations takes no arguments (except --version).");
         std::process::exit(1);
     }
 
