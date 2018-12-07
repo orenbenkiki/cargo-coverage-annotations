@@ -111,7 +111,8 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
     let mut is_file_maybe_tested = false;
     let mut line_annotations = Vec::new();
     let untrusted_regex =
-        Regex::new(r"^(?:\s*\}(?:\))*;?|\s*(?:\}\s*)?else(?:\s*\{)?)?\s*(?://.*)?$").unwrap();
+        Regex::new(r"^(?:\s*\}(?:\s*\))*(?:\s*;)?|\s*(?:\}\s*)?else(?:\s*\{)?)?\s*(?://.*)?$")
+            .unwrap();
     for (mut line_number, line) in file.lines().enumerate() {
         line_number += 1;
         let line_text = line.unwrap();
@@ -353,11 +354,13 @@ fn report_wrong_annotations(
     coverage_annotations: &HashMap<String, HashMap<i32, bool>>,
     source_annotations: &HashMap<String, FileAnnotations>,
 ) -> i32 {
-    let canonical = fs::canonicalize("src").unwrap();
-    let src = canonical.as_path().to_str().unwrap();
+    let canonical_src = fs::canonicalize("src").unwrap();
+    let src = canonical_src.as_path().to_str().unwrap();
+    let canonical_tests = fs::canonicalize("tests").unwrap();
+    let tests = canonical_tests.as_path().to_str().unwrap();
     let mut exit_status = 0;
     for (file_name, coverage_line_annotations) in coverage_annotations {
-        if file_name.starts_with(src)
+        if (file_name.starts_with(src) || file_name.starts_with(tests))
             && report_file_wrong_annotations(
                 file_name,
                 coverage_line_annotations,
@@ -368,7 +371,8 @@ fn report_wrong_annotations(
         }
     }
     for (file_name, source_file_annotations) in source_annotations {
-        if coverage_annotations.get(file_name).is_none()
+        if (file_name.starts_with(src) || file_name.starts_with(tests))
+            && coverage_annotations.get(file_name).is_none()
             && report_uncovered_file_annotations(file_name, source_file_annotations)
         {
             exit_status = 1;

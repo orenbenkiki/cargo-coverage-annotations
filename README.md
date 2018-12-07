@@ -124,11 +124,11 @@ Finally, some files might not be tested at all. In this case, they must contain
 in one of their lines a `// FILE NOT TESTED` or `// FILE MAYBE TESTED` comment.
 This includes examples files.
 
-Coverage annotations are only used for files in the `src` directory. They ensure
-that when reading the code, one is aware of what is and is not covered by tests.
-Of course, line coverage is only the most basic form of coverage tracking; that
-said, tracking it at each step is surprisingly effective in isolating cases when
-the code does not behave as expected.
+Coverage annotations are only used for files in the `src` directory and `tests`
+directories. They ensure that when reading the code, one is aware of what is and
+is not covered by the tests. Of course, line coverage is only the most basic
+form of coverage tracking; that said, tracking it at each step is surprisingly
+effective in isolating cases when the code does not behave as expected.
 
 ## License
 
