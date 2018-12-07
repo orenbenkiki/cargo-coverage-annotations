@@ -1,24 +1,21 @@
+[env]
+RUSTFLAGS = "-D warnings"
+
+# TODO: Remove this when cargo-make automatically runs the default rustfmt.
 [tasks.format-stable]
-description = "Runs the cargo rustfmt plugin."
-category = "Development"
 install_crate = "rustfmt"
 command = "cargo"
 args = ["fmt"]
 
-[tasks.clippy]
-description = "Run clippy to comment on the code."
-category = "CI"
-command = "cargo"
-args = ["clippy"]
-
 [tasks.format]
 dependencies = ["format-stable"]
 
+[tasks.pre-verify-project]
+dependencies = ["todox", "check-format", "clippy"]  # ALLOW TODOX
+
 [tasks.todox]  # ALLOW TODOX
+category = "CI"
 description = "Verify the code does not contain leftover TODOX."  # ALLOW TODOX
 install_crate = "cargo-todox"  # ALLOW TODOX
 command = "cargo"
 args = ["todox"]  # ALLOW TODOX
-
-[tasks.pre-verify-project]
-dependencies = ["todox", "check-format", "clippy"]  # ALLOW TODOX

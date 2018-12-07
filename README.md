@@ -43,8 +43,8 @@ Two options I have tested and you might want to consider are:
   `tarpaulin`, though.
 
 To combat the flakiness in the coverage reporting tools, reported coverage is
-ignored for lines that contain only `\s*})*;?` or only `\s*} else {`. This seems
-to avoid the worst false coverage offenders; YMMV.
+ignored for lines that contain only closing braces or only `else` statements, or
+only comments. This seems to avoid the worst false coverage offenders; YMMV.
 
 Of course, other tools generate other coverage file formats, and place them in
 different places. If you look at https://codecov.io/bash you will see >1K lines
@@ -65,33 +65,22 @@ If you use `cargo make`, here is one way to
 integrate `cargo coverage-annotations` into your workflow:
 
 ```toml
-[tasks.coverage-annotations-flow]
-description = "Runs the full coverage-annotations flow."
-dependencies = ["test", "coverage", "coverage-annotations"]
-
 [tasks.coverage-annotations]
 description = "Verify the coverage annotations in the code"
+category = "Test"
 install_crate = "cargo-coverage-annotations"
 command = "cargo"
-args = ["coverage-annotations"]
+args = ["coverage-annotations"
 
-[tasks.pre-coverage]
-run_task = "test"
-
+# Verify coverage annotations as part of `cargo make coverage-flow`
 [tasks.post-coverage]
-run_task = "coverage-annotations"
+dependencies = [..., "coverage-annotations"]
 
-[tasks.post-test]
-run_task = "coverage-annotations-flow"
-
-[tasks.format]
-dependencies = ["format-nightly"]
+# Verify coverage annotations as part of `cargo make build-flow`
+# and `cargo make ci-flow`.
+[tasks.pre-verify-project]
+dependencies = [..., "coverage-flow"]
 ```
-
-This will automatically verify the annotations in a new `cargo make
-coverage-annotations-flow`, as well as as a part of `cargo make
-coverage-flow`, and everything that invokes it (e.g., `cargo make
-dev-test-flow`, `cargo make build-flow`, and `cargo make ci-flow`).
 
 ### Checking coverage annotations on a CI server
 

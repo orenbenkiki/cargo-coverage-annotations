@@ -110,8 +110,10 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
     let mut is_file_not_tested = false;
     let mut is_file_maybe_tested = false;
     let mut line_annotations = Vec::new();
-    let untrusted_regex = Regex::new(r"^\s*\}(?:\)*;?|\s*else\s*\{)$").unwrap();
-    for (line_number, line) in file.lines().enumerate() {
+    let untrusted_regex =
+        Regex::new(r"^(?:\s*\}(?:\))*;?|\s*(?:\}\s*)?else(?:\s*\{)?)?\s*(?://.*)?$").unwrap();
+    for (mut line_number, line) in file.lines().enumerate() {
+        line_number += 1;
         let line_text = line.unwrap();
         let line_mark = extract_line_mark(line_text.as_ref());
         let (line_annotation, next_region_annotation) = match (line_mark, region_annotation) {
@@ -256,7 +258,8 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
 }
 
 fn verify_untested_file_annotations(path: &Path, line_annotations: &[LineAnnotation]) {
-    for (line_number, line_annotation) in line_annotations.iter().enumerate() {
+    for (mut line_number, line_annotation) in line_annotations.iter().enumerate() {
+        line_number += 1;
         if is_explicit(line_annotation) {
             eprintln!(
                 "{}:{}: line coverage annotation in a FILE which is NOT TESTED",
@@ -334,7 +337,7 @@ fn collect_coverage_annotations(
                             .unwrap()
                             .entry(line_number)
                             .or_insert(false);
-                    } else if line_number > 0 {
+                    } else {
                         coverage_annotations
                             .get_mut(&file_name)
                             .unwrap()
@@ -387,8 +390,10 @@ fn report_file_wrong_annotations(
         }
         FileAnnotations::LineAnnotations(ref source_line_annotations) => {
             let mut has_wrong_annotation = false;
-            for (line_number, source_line_annotation) in source_line_annotations.iter().enumerate()
+            for (mut line_number, source_line_annotation) in
+                source_line_annotations.iter().enumerate()
             {
+                line_number += 1;
                 let coverage_line_annotation = coverage_file_annotations.get(&(line_number as i32));
                 match (source_line_annotation, coverage_line_annotation) {
                     (&LineAnnotation::Tested(_), Some(&false)) => {
