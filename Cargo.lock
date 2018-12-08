@@ -13,7 +13,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "cargo-coverage-annotations"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "regex 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "version 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",

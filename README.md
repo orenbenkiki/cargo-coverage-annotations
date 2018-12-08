@@ -1,4 +1,4 @@
-# cargo-coverage-annotations [![Build Status](https://api.travis-ci.org/orenbenkiki/cargo-coverage-annotations.svg?branch=master)](https://travis-ci.org/orenbenkiki/cargo-coverage-annotations) [![docs](https://docs.rs/cargo-coverage-annotations/badge.svg)](https://docs.rs/crate/cargo-coverage-annotations)
+# cargo-coverage-annotations [![Build Status](https://api.travis-ci.org/orenbenkiki/cargo-coverage-annotations.svg?branch=master)](https://travis-ci.org/orenbenkiki/cargo-coverage-annotations) [![Docs](https://docs.rs/cargo-coverage-annotations/badge.svg)](https://docs.rs/crate/cargo-coverage-annotations)
 
 Ensure annotations in code match actual coverage.
 
