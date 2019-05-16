@@ -89,8 +89,7 @@ fn collect_dir_annotations(
         let path = entry.path();
         if path.is_dir() {
             collect_dir_annotations(&path, source_annotations, coverage_annotations)?;
-        } else {
-            let canonical = fs::canonicalize(path).unwrap();
+        } else if let Ok(canonical) = fs::canonicalize(path) {
             let file_name = canonical.as_path().to_str().unwrap();
             if file_name.ends_with("/cobertura.xml") {
                 collect_coverage_annotations(&canonical.as_path(), coverage_annotations);
