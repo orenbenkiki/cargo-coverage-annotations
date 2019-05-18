@@ -1,4 +1,4 @@
-// Copyright (C) 2017,2018 Oren Ben-Kiki <oren@ben-kiki.org>
+// Copyright (C) 2017,2018,2019 Oren Ben-Kiki <oren@ben-kiki.org>
 //
 // This file is part of cargo-coverage-annotations.
 //
@@ -353,13 +353,17 @@ fn report_wrong_annotations(
     coverage_annotations: &HashMap<String, HashMap<i32, bool>>,
     source_annotations: &HashMap<String, FileAnnotations>,
 ) -> i32 {
-    let canonical_src = fs::canonicalize("src").unwrap();
-    let src = canonical_src.as_path().to_str().unwrap();
-    let canonical_tests = fs::canonicalize("tests").unwrap();
-    let tests = canonical_tests.as_path().to_str().unwrap();
+    let mut src = "src".to_string();
+    if let Ok(canonical_src) = fs::canonicalize("src") {
+        src = canonical_src.as_path().to_str().unwrap().to_string();
+    }
+    let mut tests = "tests".to_string();
+    if let Ok(canonical_tests) = fs::canonicalize("tests") {
+        tests = canonical_tests.as_path().to_str().unwrap().to_string();
+    }
     let mut exit_status = 0;
     for (file_name, coverage_line_annotations) in coverage_annotations {
-        if (file_name.starts_with(src) || file_name.starts_with(tests))
+        if (file_name.starts_with(src.as_str()) || file_name.starts_with(tests.as_str()))
             && report_file_wrong_annotations(
                 file_name,
                 coverage_line_annotations,
@@ -370,7 +374,7 @@ fn report_wrong_annotations(
         }
     }
     for (file_name, source_file_annotations) in source_annotations {
-        if (file_name.starts_with(src) || file_name.starts_with(tests))
+        if (file_name.starts_with(src.as_str()) || file_name.starts_with(tests.as_str()))
             && coverage_annotations.get(file_name).is_none()
             && report_uncovered_file_annotations(file_name, source_file_annotations)
         {

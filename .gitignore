@@ -1,6 +1,7 @@
-/target/
+cobertura.xml
 /docs/
+*junk*
+Makefile.scmf.toml
 **/*.rs.bk
 .*.sw*
-*junk*
-cobertura.xml
+/target/

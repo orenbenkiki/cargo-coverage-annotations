@@ -1,21 +1,7 @@
+extend = "Makefile.scmf.toml"
+
+[config]
+load_script = ["curl -s https://raw.githubusercontent.com/orenbenkiki/scmf/master/Makefile.scmf.toml > Makefile.scmf.toml"]
+
 [env]
-RUSTFLAGS = "-D warnings"
-
-# TODO: Remove this when cargo-make automatically runs the default rustfmt.
-[tasks.format-stable]
-install_crate = "rustfmt"
-command = "cargo"
-args = ["fmt"]
-
-[tasks.format]
-dependencies = ["format-stable"]
-
-[tasks.pre-verify-project]
-dependencies = ["todox", "check-format", "clippy"]  # ALLOW TODOX
-
-[tasks.todox]  # ALLOW TODOX
-category = "CI"
-description = "Verify the code does not contain leftover TODOX."  # ALLOW TODOX
-install_crate = "cargo-todox"  # ALLOW TODOX
-command = "cargo"
-args = ["todox"]  # ALLOW TODOX
+SCMF_DISABLE_COVERAGE_ANNOTATIONS = "1"
