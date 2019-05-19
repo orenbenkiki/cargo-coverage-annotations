@@ -10,6 +10,12 @@ keywords = ["cargo", "git", "subcommand", "build"]
 categories =[ "development-tools::build-utils", "development-tools::cargo-plugins"]
 license = "GPL-3.0"
 
+[badges.travis-ci]
+repository = "orenbenkiki/cargo-coverage-annotations"
+
+[badges.codecov]
+repository = "orenbenkiki/cargo-coverage-annotations"
+
 [dependencies]
 regex = "^1.1.6"
 version = "^3.0.0"
