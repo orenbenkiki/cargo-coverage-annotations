@@ -25,7 +25,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::vec::Vec;
 use xml::reader::{EventReader, XmlEvent};
 
@@ -302,51 +302,75 @@ fn collect_coverage_annotations(
     let file = BufReader::new(file);
     let parser = EventReader::new(file);
     let mut file_name = String::from("unknown");
+    let mut sources: Vec<String> = Vec::new();
+    sources.push("".to_string());
+    let mut collect_source = false;
     for event in parser {
-        if let XmlEvent::StartElement {
-            ref name,
-            ref attributes,
-            ..
-        } = event.unwrap()
-        {
-            if name.local_name == "class" {
-                for attribute in attributes {
-                    if attribute.name.local_name == "filename" {
-                        let canonical = fs::canonicalize(attribute.value.clone()).unwrap();
-                        file_name = canonical.as_path().to_str().unwrap().to_string();
-                        coverage_annotations
-                            .entry(file_name.clone())
-                            .or_insert_with(HashMap::new);
+        match event.unwrap() {
+            XmlEvent::StartElement {
+                ref name,
+                ref attributes,
+                ..
+            } => {
+                collect_source = name.local_name == "source";
+                if name.local_name == "class" {
+                    for attribute in attributes {
+                        if attribute.name.local_name == "filename" {
+                            file_name = canonical_file_name(&sources, &attribute.value).unwrap();
+                            coverage_annotations
+                                .entry(file_name.clone())
+                                .or_insert_with(HashMap::new);
+                        }
+                    }
+                }
+                if name.local_name == "line" {
+                    let mut line_number = -1;
+                    let mut hits_count = -1;
+                    for attribute in attributes {
+                        if attribute.name.local_name == "number" {
+                            line_number = attribute.value.parse().unwrap();
+                        } else if attribute.name.local_name == "hits" {
+                            hits_count = attribute.value.parse().unwrap();
+                        }
+                    }
+                    if line_number > 0 {
+                        if hits_count == 0 {
+                            coverage_annotations
+                                .get_mut(&file_name)
+                                .unwrap()
+                                .entry(line_number)
+                                .or_insert(false);
+                        } else {
+                            coverage_annotations
+                                .get_mut(&file_name)
+                                .unwrap()
+                                .insert(line_number, true);
+                        }
                     }
                 }
             }
-            if name.local_name == "line" {
-                let mut line_number = -1;
-                let mut hits_count = -1;
-                for attribute in attributes {
-                    if attribute.name.local_name == "number" {
-                        line_number = attribute.value.parse().unwrap();
-                    } else if attribute.name.local_name == "hits" {
-                        hits_count = attribute.value.parse().unwrap();
+            XmlEvent::Characters(mut string) => {
+                if collect_source {
+                    if !string.ends_with('/') {
+                        string.push('/');
                     }
-                }
-                if line_number > 0 {
-                    if hits_count == 0 {
-                        coverage_annotations
-                            .get_mut(&file_name)
-                            .unwrap()
-                            .entry(line_number)
-                            .or_insert(false);
-                    } else {
-                        coverage_annotations
-                            .get_mut(&file_name)
-                            .unwrap()
-                            .insert(line_number, true);
-                    }
+                    sources.push(string);
                 }
             }
+            _ => {}
         };
     }
+}
+
+fn canonical_file_name(sources: &[String], file_name: &str) -> Option<String> {
+    for source in sources {
+        let mut path = PathBuf::from(source);
+        path.push(file_name);
+        if let Ok(canonical) = fs::canonicalize(path) {
+            return Some(canonical.as_path().to_str().unwrap().to_string());
+        }
+    }
+    None
 }
 
 fn report_wrong_annotations(
