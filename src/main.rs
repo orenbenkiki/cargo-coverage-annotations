@@ -84,8 +84,9 @@ fn collect_dir_annotations(
     source_annotations: &mut HashMap<String, FileAnnotations>,
     coverage_annotations: &mut HashMap<String, HashMap<i32, bool>>,
 ) -> std::io::Result<()> {
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
+    let entries: fs::ReadDir = fs::read_dir(dir)?;
+    for entry in entries {
+        let entry: fs::DirEntry = entry?;
         let path = entry.path();
         if path.is_dir() {
             collect_dir_annotations(&path, source_annotations, coverage_annotations)?;
@@ -120,6 +121,8 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
             (LineMark::None, region_annotation) => {
                 if untrusted_regex.is_match(line_text.as_ref()) {
                     (LineAnnotation::MaybeTested(false), region_annotation)
+                } else if line_text.contains("unreachable!()") {
+                    (LineAnnotation::NotTested(false), region_annotation)
                 } else {
                     (region_annotation.clone(), region_annotation)
                 }
