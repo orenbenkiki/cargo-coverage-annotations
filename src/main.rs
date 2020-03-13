@@ -500,10 +500,10 @@ fn process_args() {
     let mut are_args_valid = true;
     let mut should_print_version = false;
 
-    args.nth(0);
+    args.next();
     match count {
         1 => {}
-        2 => match args.nth(0).unwrap().as_ref() {
+        2 => match args.next().unwrap().as_ref() {
             "--version" => {
                 should_print_version = true;
             }
@@ -513,7 +513,7 @@ fn process_args() {
             }
         },
         3 => {
-            if args.nth(0).unwrap() == "coverage-annotations" && args.nth(0).unwrap() == "--version"
+            if args.next().unwrap() == "coverage-annotations" && args.next().unwrap() == "--version"
             {
                 should_print_version = true;
             } else {
