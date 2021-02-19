@@ -50,12 +50,12 @@ enum LineAnnotation {
 }
 
 fn is_explicit(line_annotation: &LineAnnotation) -> bool {
-    match *line_annotation {
-        LineAnnotation::Tested(true) => true,
-        LineAnnotation::MaybeTested(true) => true,
-        LineAnnotation::NotTested(true) => true,
-        _ => false,
-    }
+    matches!(
+        *line_annotation,
+        LineAnnotation::Tested(true)
+            | LineAnnotation::MaybeTested(true)
+            | LineAnnotation::NotTested(true)
+    )
 }
 
 enum FileAnnotations {
@@ -95,7 +95,7 @@ fn collect_dir_annotations(
             if file_name.ends_with("/cobertura.xml") {
                 collect_coverage_annotations(&canonical.as_path(), coverage_annotations);
             } else if file_name.ends_with(".rs") {
-                let annotations = collect_file_annotations(&canonical.as_path())?;
+                let annotations = collect_file_annotations(&canonical.as_path());
                 source_annotations.insert(file_name.to_string(), annotations);
             }
         }
@@ -103,7 +103,7 @@ fn collect_dir_annotations(
     Ok(())
 }
 
-fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
+fn collect_file_annotations(path: &Path) -> FileAnnotations {
     let file = File::open(path).unwrap_or_else(|_| panic!("can't open {}", path.to_str().unwrap()));
     let file = BufReader::new(file);
     let mut region_annotation = LineAnnotation::Tested(false);
@@ -251,12 +251,12 @@ fn collect_file_annotations(path: &Path) -> std::io::Result<FileAnnotations> {
     }
     if is_file_maybe_tested {
         verify_untested_file_annotations(path, &line_annotations);
-        Ok(FileAnnotations::MaybeTested)
+        FileAnnotations::MaybeTested
     } else if is_file_not_tested {
         verify_untested_file_annotations(path, &line_annotations);
-        Ok(FileAnnotations::NotTested)
+        FileAnnotations::NotTested
     } else {
-        Ok(FileAnnotations::LineAnnotations(line_annotations))
+        FileAnnotations::LineAnnotations(line_annotations)
     }
 }
 
