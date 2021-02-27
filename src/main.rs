@@ -1,4 +1,4 @@
-// Copyright (C) 2017-2019 Oren Ben-Kiki <oren@ben-kiki.org>
+// Copyright (C) 2017-2021 Oren Ben-Kiki <oren@ben-kiki.org>
 //
 // This file is part of cargo-coverage-annotations.
 //
@@ -274,23 +274,23 @@ fn verify_untested_file_annotations(path: &Path, line_annotations: &[LineAnnotat
 }
 
 fn extract_line_mark(line: &str) -> LineMark {
-    if line.ends_with("// TESTED") {
+    if line.contains("// TESTED") || line.contains("/* TESTED") {
         LineMark::LineTested
-    } else if line.ends_with("// MAYBE TESTED") {
+    } else if line.contains("// MAYBE TESTED") || line.contains("/* MAYBE TESTED") {
         LineMark::LineMaybeTested
-    } else if line.ends_with("// NOT TESTED") {
+    } else if line.contains("// NOT TESTED") || line.contains("/* NOT TESTED") {
         LineMark::LineNotTested
-    } else if line.ends_with("// BEGIN MAYBE TESTED") {
+    } else if line.contains("// BEGIN MAYBE TESTED") || line.contains("/* BEGIN MAYBE TESTED") {
         LineMark::BeginMaybeTested
-    } else if line.ends_with("// BEGIN NOT TESTED") {
+    } else if line.contains("// BEGIN NOT TESTED") || line.contains("/* BEGIN NOT TESTED") {
         LineMark::BeginNotTested
-    } else if line.ends_with("// END MAYBE TESTED") {
+    } else if line.contains("// END MAYBE TESTED") || line.contains("/* END MAYBE TESTED") {
         LineMark::EndMaybeTested
-    } else if line.ends_with("// END NOT TESTED") {
+    } else if line.contains("// END NOT TESTED") || line.contains("/* END NOT TESTED") {
         LineMark::EndNotTested
-    } else if line.ends_with("// FILE MAYBE TESTED") {
+    } else if line.contains("// FILE MAYBE TESTED") || line.contains("// FILE MAYBE TESTED") {
         LineMark::FileMaybeTested
-    } else if line.ends_with("// FILE NOT TESTED") {
+    } else if line.contains("// FILE NOT TESTED") || line.contains("/* FILE NOT TESTED") {
         LineMark::FileNotTested
     } else {
         LineMark::None
@@ -305,8 +305,7 @@ fn collect_coverage_annotations(
     let file = BufReader::new(file);
     let parser = EventReader::new(file);
     let mut file_name = String::from("unknown");
-    let mut sources: Vec<String> = Vec::new();
-    sources.push("".to_string());
+    let mut sources: Vec<String> = vec!["".to_string()];
     let mut collect_source = false;
     for event in parser {
         match event.unwrap() {
