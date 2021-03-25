@@ -416,13 +416,13 @@ fn report_file_wrong_annotations(
     source_file_annotation: &FileAnnotations,
 ) -> bool {
     match *source_file_annotation {
-        FileAnnotations::MaybeTested => true,
+        FileAnnotations::MaybeTested => false,
         FileAnnotations::NotTested => {
             eprintln!("{}: wrong FILE NOT TESTED coverage annotation", file_name);
-            false
+            true
         }
         FileAnnotations::LineAnnotations(ref source_line_annotations) => {
-            let mut has_wrong_annotation = false;
+            let mut reported_annotation = false;
             for (mut line_number, source_line_annotation) in
                 source_line_annotations.iter().enumerate()
             {
@@ -434,7 +434,7 @@ fn report_file_wrong_annotations(
                             "{}:{}: wrong TESTED coverage annotation",
                             file_name, line_number,
                         );
-                        has_wrong_annotation = true;
+                        reported_annotation = true;
                     }
 
                     (&LineAnnotation::NotTested(_), Some(&true)) => {
@@ -442,7 +442,7 @@ fn report_file_wrong_annotations(
                             "{}:{}: wrong NOT TESTED coverage annotation",
                             file_name, line_number,
                         );
-                        has_wrong_annotation = true;
+                        reported_annotation = true;
                     }
 
                     (&LineAnnotation::Tested(true), None) => {
@@ -450,7 +450,7 @@ fn report_file_wrong_annotations(
                             "{}:{}: explicit TESTED coverage annotation for a non-executable line",
                             file_name, line_number,
                         );
-                        has_wrong_annotation = true;
+                        reported_annotation = true;
                     }
 
                     (&LineAnnotation::NotTested(true), None) => {
@@ -459,7 +459,7 @@ fn report_file_wrong_annotations(
                              explicit NOT TESTED coverage annotation for a non-executable line",
                             file_name, line_number,
                         );
-                        has_wrong_annotation = true;
+                        reported_annotation = true;
                     }
 
                     (&LineAnnotation::MaybeTested(true), None) => {
@@ -468,13 +468,13 @@ fn report_file_wrong_annotations(
                              explicit MAYBE TESTED coverage annotation for a non-executable line",
                             file_name, line_number,
                         );
-                        has_wrong_annotation = true;
+                        reported_annotation = true;
                     }
 
                     _ => {}
                 }
             }
-            has_wrong_annotation
+            reported_annotation
         }
     }
 }
