@@ -1,7 +1,0 @@
-extend = "Makefile.scmf.toml"
-
-[config]
-load_script = ["curl -s https://raw.githubusercontent.com/orenbenkiki/scmf/master/Makefile.scmf.toml > Makefile.scmf.toml"]
-
-[env]
-SCMF_DISABLE_COVERAGE_ANNOTATIONS = "1"

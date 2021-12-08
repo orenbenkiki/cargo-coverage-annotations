@@ -16,10 +16,19 @@
 
 //! Ensure annotations in code match actual coverage.
 
-extern crate regex;
+#![deny(warnings)]
+#![deny(rust_2018_idioms)]
+#![deny(clippy::all)]
+#![deny(clippy::pedantic)]
+#![deny(clippy::perf)]
+#![deny(clippy::nursery)]
+#![deny(clippy::cargo)]
+#![allow(clippy::case_sensitive_file_extension_comparisons)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_possible_wrap)]
+
 #[macro_use]
 extern crate version;
-extern crate xml;
 
 use regex::Regex;
 use std::collections::HashMap;
@@ -49,7 +58,7 @@ enum LineAnnotation {
     NotTested(bool),
 }
 
-fn is_explicit(line_annotation: &LineAnnotation) -> bool {
+const fn is_explicit(line_annotation: &LineAnnotation) -> bool {
     matches!(
         *line_annotation,
         LineAnnotation::Tested(true)
@@ -93,9 +102,9 @@ fn collect_dir_annotations(
         } else if let Ok(canonical) = fs::canonicalize(path) {
             let file_name = canonical.as_path().to_str().unwrap();
             if file_name.ends_with("/cobertura.xml") {
-                collect_coverage_annotations(&canonical.as_path(), coverage_annotations);
+                collect_coverage_annotations(canonical.as_path(), coverage_annotations);
             } else if file_name.ends_with(".rs") {
-                let annotations = collect_file_annotations(&canonical.as_path());
+                let annotations = collect_file_annotations(canonical.as_path());
                 source_annotations.insert(file_name.to_string(), annotations);
             }
         }
@@ -103,6 +112,7 @@ fn collect_dir_annotations(
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 fn collect_file_annotations(path: &Path) -> FileAnnotations {
     let file = File::open(path).unwrap_or_else(|_| panic!("can't open {}", path.to_str().unwrap()));
     let file = BufReader::new(file);
@@ -484,8 +494,7 @@ fn report_uncovered_file_annotations(
     source_file_annotations: &FileAnnotations,
 ) -> bool {
     match *source_file_annotations {
-        FileAnnotations::MaybeTested => false,
-        FileAnnotations::NotTested => false,
+        FileAnnotations::MaybeTested | FileAnnotations::NotTested => false,
         FileAnnotations::LineAnnotations(_) => {
             eprintln!("{}: missing FILE NOT TESTED coverage annotation", file_name);
             true
