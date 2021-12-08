@@ -79,7 +79,7 @@ $(TODO): .make.$(TODO)  ## check there are no leftover TODO-X
 outdated: .make.outdated  ## check all dependencies are up-to-date
 	
 .make.outdated: $(TOML_SOURCES)
-	cargo outdated
+	cargo outdated --root-deps-only --exit-code 1
 	touch $@
 
 clippy: .make.clippy  ## check for code smells with clippy
