@@ -6,6 +6,10 @@ TOML_SOURCES = $(filter %.toml, $(ALL_SOURCES))
 
 CARGO_SOURCES = $(RS_SOURCES) $(TOML_SOURCES)
 
+TEST_FLAGS = RUST_TEST_THREADS=1 RUST_BACKTRACE=1
+
+TODO = todo$()x
+
 define PRINT_HELP_PYSCRIPT
 import re, sys
 
@@ -17,26 +21,19 @@ for line in sys.stdin:
 endef
 export PRINT_HELP_PYSCRIPT
 
-help:
+help:  ## print this error message
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-TAGS: $(RS_SOURCES)  ## TAGS file for vim or Emacs.
-	rust-ctags .
+fmt: .make.fmt  ## check code format
+	
+.make.fmt: .cargo/config.toml $(CARGO_SOURCES)
+	cargo fmt -- --check
+	touch $@
 
-TEST_FLAGS = RUST_TEST_THREADS=1 RUST_BACKTRACE=1
-
-retest:  ## force re-run tests
-	$(TEST_FLAGS) cargo test -- --nocapture
-
-.cargo/config.toml:
-	mkdir -p .cargo
-	echo '[build]' > $@
-	cargo tarpaulin --print-rust-flags | tail -1 | sed 's/RUSTFLAGS/rustflags/' >> $@
-
-test: .make.test  ## run tests
-
-.make.test: .cargo/config.toml $(CARGO_SOURCES)
-	$(TEST_FLAGS) cargo test -- --nocapture
+refmt: .make.refmt  ## reformat the code
+	
+.make.refmt: .cargo/config.toml $(CARGO_SOURCES)
+	cargo fmt
 	touch $@
 
 check: .make.check  ## check the sources
@@ -45,38 +42,46 @@ check: .make.check  ## check the sources
 	cargo check --tests
 	touch $@
 
-build: .make.build  ## build the binaries
+clippy: .make.clippy  ## check for code smells with clippy
+	
+.make.clippy: .cargo/config.toml .make.check
+	cargo clippy -- --no-deps
+	touch $@
+
+build: .make.build  ## build everything
 
 .make.build: .cargo/config.toml $(CARGO_SOURCES)
-	$(TEST_FLAGS) cargo build
-	$(TEST_FLAGS) cargo test --no-run
+	cargo build
+	cargo test --no-run
 	touch $@
 
-TODO = todo$()x
+test: .make.test  ## run tests
 
-pc: $(TODO) fmt staged clippy test doc outdated audit  ## check everything before commit
-
-ci: $(TODO) fmt clippy doc outdated audit  ## check everything in a CI server
-
-fmt: .make.fmt  ## check code format
-	
-.make.fmt: .cargo/config.toml $(CARGO_SOURCES)
-	cargo fmt -- --check
+.make.test: .cargo/config.toml .make.build
+	$(TEST_FLAGS) cargo test -- --nocapture
 	touch $@
 
-refmt: .make.refmt  ## reformat code
-	
-.make.refmt: .cargo/config.toml $(CARGO_SOURCES)
-	cargo fmt
+retest: .cargo/config.toml  ## force re-run tests with nocapture
+	$(TEST_FLAGS) cargo test -- --nocapture
+
+coverage: .make.coverage  ## generate coverage report
+
+.make.coverage: .make.test # $(CARGO_SOURCES)
+	mv .cargo/config.toml .cargo/_config.toml
+	$(TEST_FLAGS) cargo tarpaulin --skip-clean --out Xml
+	mv .cargo/_config.toml .cargo/config.toml
 	touch $@
 
-staged:  ## check everything is staged for git commit
-	@if git status . | grep -q 'Changes not staged\|Untracked files'; then git status; false; else true; fi
+ca: .make.ca  ## check coverage annotations in code
 
-$(TODO): .make.$(TODO)  ## check there are no leftover TODO-X
+.make.ca: .cargo/config.toml .make.coverage
+	cargo coverage-annotations
+	touch $@
+
+doc: .make.doc  ## generate documentation
 	
-.make.$(TODO): $(ALL_SOURCES)
-	cargo $(TODO)
+.make.doc: .cargo/config.toml $(ALL_SOURCES)
+	cargo doc --no-deps # --workspace
 	touch $@
 
 outdated: .make.outdated  ## check all dependencies are up-to-date
@@ -85,38 +90,43 @@ outdated: .make.outdated  ## check all dependencies are up-to-date
 	cargo outdated --root-deps-only --exit-code 1
 	touch $@
 
-clippy: .make.clippy  ## check for code smells with clippy
-	
-.make.clippy: .make.check
-	cargo clippy -- --no-deps
-	touch $@
-
-doc: .make.doc  ## generate documentation
-	
-.make.doc: .cargo/config.toml $(ALL_SOURCES)
-	cargo doc --no-deps
-	touch $@
-
-coverage: .make.coverage  ## generate coverage report
-
-.make.coverage: .cargo/config.toml $(CARGO_SOURCES)
-	mv .cargo/config.toml .cargo/_config.toml
-	$(TEST_FLAGS) cargo tarpaulin --skip-clean --out Xml
-	mv .cargo/_config.toml .cargo/config.toml
-	touch $@
-
 audit: .make.audit  ## audit dependencies for bugs or security issues
 	
 .make.audit: .cargo/config.toml $(TOML_SOURCES)
 	cargo audit
 	touch $@
 
-clean:  ## remove all build, test, coverage and Python artifacts
-	rm -f .make.*
-	rm -rf .cargo target
+$(TODO): .make.$(TODO)  ## check there are no leftover TODO-X
+	
+.make.$(TODO): .cargo/config.toml $(ALL_SOURCES)
+	cargo $(TODO)
+	touch $@
 
-pp: pc  ## pre-publish check
+common: fmt clippy test ca doc outdated audit
+
+dev: refmt tags common ## verify during development
+
+staged:  ## check everything is staged for git commit
+	@if git status . | grep -q 'Changes not staged\|Untracked files'; then git status; false; else true; fi
+
+pc: $(TODO) staged common  ## verify everything before commit
+
+pre-publish: .cargo/config.toml  ## publish dry run
 	cargo publish --dry-run
 
-publish: pp  ## actually publish
+ci: $(TODO) common pre-publish ## verify everything in a CI server
+
+publish: ci  ## actually publish
 	cargo publish
+
+tags: $(RS_SOURCES)  ## tags file for vim or Emacs.
+	ctags --recurse .
+
+clean:  ## remove all generated files
+	rm -f .make.* tags
+	rm -rf .cargo target
+
+.cargo/config.toml:
+	mkdir -p .cargo
+	echo '[build]' > $@
+	cargo tarpaulin --print-rust-flags | tail -1 | sed 's/RUSTFLAGS/rustflags/' >> $@
