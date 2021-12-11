@@ -26,25 +26,30 @@ TAGS: $(RS_SOURCES)  ## TAGS file for vim or Emacs.
 TEST_FLAGS = RUST_TEST_THREADS=1 RUST_BACKTRACE=1
 
 retest:  ## force re-run tests
-	$(TEST_FLAGS) ./with_configuration.sh base cargo test -- --nocapture
+	$(TEST_FLAGS) cargo test -- --nocapture
+
+.cargo/config.toml:
+	mkdir -p .cargo
+	echo '[build]' > $@
+	cargo tarpaulin --print-rust-flags | tail -1 | sed 's/RUSTFLAGS/rustflags/' >> $@
 
 test: .make.test  ## run tests
 
-.make.test: $(CARGO_SOURCES)
-	$(TEST_FLAGS) ./with_configuration.sh base cargo test -- --nocapture
+.make.test: .cargo/config.toml $(CARGO_SOURCES)
+	$(TEST_FLAGS) cargo test -- --nocapture
 	touch $@
 
 check: .make.check  ## check the sources
 
-.make.check: $(CARGO_SOURCES)
-	./with_configuration.sh check cargo check --tests
+.make.check: .cargo/config.toml $(CARGO_SOURCES)
+	cargo check --tests
 	touch $@
 
 build: .make.build  ## build the binaries
 
-.make.build: $(CARGO_SOURCES)
-	$(TEST_FLAGS) ./with_configuration.sh base cargo build
-	$(TEST_FLAGS) ./with_configuration.sh base cargo test --no-run
+.make.build: .cargo/config.toml $(CARGO_SOURCES)
+	$(TEST_FLAGS) cargo build
+	$(TEST_FLAGS) cargo test --no-run
 	touch $@
 
 TODO = todo$()x
@@ -55,13 +60,13 @@ ci: $(TODO) fmt clippy doc outdated audit  ## check everything in a CI server
 
 fmt: .make.fmt  ## check code format
 	
-.make.fmt: $(CARGO_SOURCES)
+.make.fmt: .cargo/config.toml $(CARGO_SOURCES)
 	cargo fmt -- --check
 	touch $@
 
 refmt: .make.refmt  ## reformat code
 	
-.make.refmt: $(CARGO_SOURCES)
+.make.refmt: .cargo/config.toml $(CARGO_SOURCES)
 	cargo fmt
 	touch $@
 
@@ -76,40 +81,42 @@ $(TODO): .make.$(TODO)  ## check there are no leftover TODO-X
 
 outdated: .make.outdated  ## check all dependencies are up-to-date
 	
-.make.outdated: $(TOML_SOURCES)
+.make.outdated: .cargo/config.toml $(TOML_SOURCES)
 	cargo outdated --root-deps-only --exit-code 1
 	touch $@
 
 clippy: .make.clippy  ## check for code smells with clippy
 	
 .make.clippy: .make.check
-	./with_configuration.sh check cargo clippy -- --no-deps
+	cargo clippy -- --no-deps
 	touch $@
 
 doc: .make.doc  ## generate documentation
 	
-.make.doc: $(ALL_SOURCES)
-	./with_configuration.sh base cargo doc --no-deps
+.make.doc: .cargo/config.toml $(ALL_SOURCES)
+	cargo doc --no-deps
 	touch $@
 
 coverage: .make.coverage  ## generate coverage report
 
-.make.coverage: $(CARGO_SOURCES)
-	$(TEST_FLAGS) ./with_configuration.sh tarpaulin cargo tarpaulin --out Xml
+.make.coverage: .cargo/config.toml $(CARGO_SOURCES)
+	mv .cargo/config.toml .cargo/_config.toml
+	$(TEST_FLAGS) cargo tarpaulin --skip-clean --out Xml
+	mv .cargo/_config.toml .cargo/config.toml
 	touch $@
 
 audit: .make.audit  ## audit dependencies for bugs or security issues
 	
-.make.audit: $(TOML_SOURCES)
+.make.audit: .cargo/config.toml $(TOML_SOURCES)
 	cargo audit
 	touch $@
 
 clean:  ## remove all build, test, coverage and Python artifacts
 	rm -f .make.*
-	rm -rf target .target.*
+	rm -rf .cargo target
 
 pp: pc  ## pre-publish check
-	./with_configuration.sh publish cargo publish --dry-run
+	cargo publish --dry-run
 
 publish: pp  ## actually publish
-	./with_configuration.sh publish cargo publish
+	cargo publish
