@@ -14,8 +14,7 @@
 // You should have received a copy of the GNU General Public License along with
 // cargo-coverage-annotations. If not, see <http://www.gnu.org/licenses/>.
 
-//! Ensure annotations in code match actual coverage.
-
+#![doc = include_str!("../README.md")]
 #![deny(warnings)]
 #![deny(rust_2018_idioms)]
 #![deny(clippy::all)]
@@ -38,6 +37,7 @@ use std::path::{Path, PathBuf};
 use std::vec::Vec;
 use xml::reader::{EventReader, XmlEvent};
 
+#[doc(hidden)]
 enum LineMark {
     None,
     LineTested,
@@ -52,12 +52,14 @@ enum LineMark {
 }
 
 #[derive(Clone)]
+#[doc(hidden)]
 enum LineAnnotation {
     Tested(bool),
     MaybeTested(bool),
     NotTested(bool),
 }
 
+#[doc(hidden)]
 const fn is_explicit(line_annotation: &LineAnnotation) -> bool {
     matches!(
         *line_annotation,
@@ -67,12 +69,14 @@ const fn is_explicit(line_annotation: &LineAnnotation) -> bool {
     )
 }
 
+#[doc(hidden)]
 enum FileAnnotations {
     LineAnnotations(Vec<LineAnnotation>),
     MaybeTested,
     NotTested,
 }
 
+#[doc(hidden)]
 fn main() {
     process_args();
 
@@ -88,6 +92,7 @@ fn main() {
     std::process::exit(exit_status);
 }
 
+#[doc(hidden)]
 fn collect_dir_annotations(
     dir: &Path,
     source_annotations: &mut HashMap<String, FileAnnotations>,
@@ -113,6 +118,7 @@ fn collect_dir_annotations(
 }
 
 #[allow(clippy::too_many_lines)]
+#[doc(hidden)]
 fn collect_file_annotations(path: &Path) -> FileAnnotations {
     let file = File::open(path).unwrap_or_else(|_| panic!("can't open {}", path.to_str().unwrap()));
     let file = BufReader::new(file);
@@ -270,6 +276,7 @@ fn collect_file_annotations(path: &Path) -> FileAnnotations {
     }
 }
 
+#[doc(hidden)]
 fn verify_untested_file_annotations(path: &Path, line_annotations: &[LineAnnotation]) {
     for (mut line_number, line_annotation) in line_annotations.iter().enumerate() {
         line_number += 1;
@@ -283,30 +290,48 @@ fn verify_untested_file_annotations(path: &Path, line_annotations: &[LineAnnotat
     }
 }
 
+#[doc(hidden)]
 fn extract_line_mark(line: &str) -> LineMark {
     if line.contains("// TESTED") || line.contains("/* TESTED") {
         LineMark::LineTested
     } else if line.contains("// MAYBE TESTED") || line.contains("/* MAYBE TESTED") {
         LineMark::LineMaybeTested
-    } else if line.contains("// NOT TESTED") || line.contains("/* NOT TESTED") {
+    } else if line.contains("// NOT TESTED")
+        || line.contains("/* NOT TESTED")
+        || line.contains("// APPEARS NOT TESTED")
+        || line.contains("/* APPEARS NOT TESTED")
+    {
         LineMark::LineNotTested
     } else if line.contains("// BEGIN MAYBE TESTED") || line.contains("/* BEGIN MAYBE TESTED") {
         LineMark::BeginMaybeTested
-    } else if line.contains("// BEGIN NOT TESTED") || line.contains("/* BEGIN NOT TESTED") {
+    } else if line.contains("// BEGIN NOT TESTED")
+        || line.contains("/* BEGIN NOT TESTED")
+        || line.contains("// BEGIN APPEARS NOT TESTED")
+        || line.contains("/* BEGIN APPEARS NOT TESTED")
+    {
         LineMark::BeginNotTested
     } else if line.contains("// END MAYBE TESTED") || line.contains("/* END MAYBE TESTED") {
         LineMark::EndMaybeTested
-    } else if line.contains("// END NOT TESTED") || line.contains("/* END NOT TESTED") {
+    } else if line.contains("// END NOT TESTED")
+        || line.contains("/* END NOT TESTED")
+        || line.contains("// END APPEARS NOT TESTED")
+        || line.contains("/* END APPEARS NOT TESTED")
+    {
         LineMark::EndNotTested
     } else if line.contains("// FILE MAYBE TESTED") || line.contains("// FILE MAYBE TESTED") {
         LineMark::FileMaybeTested
-    } else if line.contains("// FILE NOT TESTED") || line.contains("/* FILE NOT TESTED") {
+    } else if line.contains("// FILE NOT TESTED")
+        || line.contains("/* FILE NOT TESTED")
+        || line.contains("// FILE APPEARS NOT TESTED")
+        || line.contains("/* FILE APPEARS NOT TESTED")
+    {
         LineMark::FileNotTested
     } else {
         LineMark::None
     }
 }
 
+#[doc(hidden)]
 fn collect_coverage_annotations(
     path: &Path,
     coverage_annotations: &mut HashMap<String, HashMap<i32, bool>>,
@@ -374,6 +399,7 @@ fn collect_coverage_annotations(
     }
 }
 
+#[doc(hidden)]
 fn canonical_file_name(sources: &[String], file_name: &str) -> Option<String> {
     for source in sources {
         let mut path = PathBuf::from(source);
@@ -385,6 +411,7 @@ fn canonical_file_name(sources: &[String], file_name: &str) -> Option<String> {
     None
 }
 
+#[doc(hidden)]
 fn report_wrong_annotations(
     coverage_annotations: &HashMap<String, HashMap<i32, bool>>,
     source_annotations: &HashMap<String, FileAnnotations>,
@@ -420,6 +447,7 @@ fn report_wrong_annotations(
     exit_status
 }
 
+#[doc(hidden)]
 fn report_file_wrong_annotations(
     file_name: &str,
     coverage_file_annotations: &HashMap<i32, bool>,
@@ -489,6 +517,7 @@ fn report_file_wrong_annotations(
     }
 }
 
+#[doc(hidden)]
 fn report_uncovered_file_annotations(
     file_name: &str,
     source_file_annotations: &FileAnnotations,
@@ -502,6 +531,7 @@ fn report_uncovered_file_annotations(
     }
 }
 
+#[doc(hidden)]
 fn process_args() {
     let count = std::env::args().count();
     let mut args = std::env::args();

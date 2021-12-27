@@ -6,9 +6,7 @@ TOML_SOURCES = $(filter %.toml, $(ALL_SOURCES))
 
 CARGO_SOURCES = $(RS_SOURCES) $(TOML_SOURCES)
 
-TEST_FLAGS = RUST_TEST_THREADS=1 RUST_BACKTRACE=1
-
-TODO = todo$()x
+TEST_FLAGS = RUST_BACKTRACE=1
 
 define PRINT_HELP_PYSCRIPT
 import re, sys
@@ -17,7 +15,7 @@ for line in sys.stdin:
 	match = re.match(r'^([a-zA-Z_-]+):.*?## (.*)$$', line)
 	if match:
 		target, help = match.groups()
-		print("%-20s %s" % (target, help.replace('TODO-', 'TODO')))
+		print("%-20s %s" % (target, help))
 endef
 export PRINT_HELP_PYSCRIPT
 
@@ -64,20 +62,6 @@ test: .make.test  ## run tests
 retest: .cargo/config.toml  ## force re-run tests with nocapture
 	$(TEST_FLAGS) cargo test -- --nocapture
 
-coverage: .make.coverage  ## generate coverage report
-
-.make.coverage: .make.test # $(CARGO_SOURCES)
-	mv .cargo/config.toml .cargo/_config.toml
-	$(TEST_FLAGS) cargo tarpaulin --skip-clean --out Xml
-	mv .cargo/_config.toml .cargo/config.toml
-	touch $@
-
-ca: .make.ca  ## check coverage annotations in code
-
-.make.ca: .cargo/config.toml .make.coverage
-	cargo coverage-annotations
-	touch $@
-
 doc: .make.doc  ## generate documentation
 	
 .make.doc: .cargo/config.toml $(ALL_SOURCES)
@@ -96,25 +80,19 @@ audit: .make.audit  ## audit dependencies for bugs or security issues
 	cargo audit
 	touch $@
 
-$(TODO): .make.$(TODO)  ## check there are no leftover TODO-X
-	
-.make.$(TODO): .cargo/config.toml $(ALL_SOURCES)
-	cargo $(TODO)
-	touch $@
+common: fmt clippy test doc
 
-common: fmt clippy test ca doc outdated audit
-
-dev: refmt tags common ## verify during development
+dev: refmt tags common outdated audit ## verify during development
 
 staged:  ## check everything is staged for git commit
 	@if git status . | grep -q 'Changes not staged\|Untracked files'; then git status; false; else true; fi
 
-pc: $(TODO) staged common  ## verify everything before commit
+pc: staged common outdated audit  ## verify everything before commit
 
 pre-publish: .cargo/config.toml  ## publish dry run
 	cargo publish --dry-run
 
-ci: $(TODO) common pre-publish ## verify everything in a CI server
+ci: common pre-publish ## verify everything in a CI server
 
 publish: ci  ## actually publish
 	cargo publish
@@ -122,9 +100,13 @@ publish: ci  ## actually publish
 tags: $(RS_SOURCES)  ## tags file for vim or Emacs.
 	ctags --recurse .
 
-clean:  ## remove all generated files
+clobber:  ## remove all generated files
 	rm -f .make.* tags
 	rm -rf .cargo target
+
+clean:  ## remove generated files except for dependencies
+	rm -f .make.* tags tarpaulin*
+	rm -rf .cargo `find target -name '*clacks*'`
 
 .cargo/config.toml:
 	mkdir -p .cargo
