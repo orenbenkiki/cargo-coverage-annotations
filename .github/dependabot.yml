@@ -3,9 +3,5 @@ updates:
 - package-ecosystem: cargo
   directory: "/"
   schedule:
-    interval: daily
+    interval: monthly
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: regex
-    versions:
-    - 1.4.4
