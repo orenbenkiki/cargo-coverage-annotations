@@ -628,6 +628,7 @@ enum FlakyPolicy {
 fn process_args() -> FlakyPolicy {
     let mut flaky_policy = FlakyPolicy::MaybeTested;
     let mut args = std::env::args();
+    args.next();
     let program = args.next().unwrap();
     for arg in args {
         match arg.as_str() {
