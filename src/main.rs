@@ -551,7 +551,7 @@ fn report_file_wrong_annotations(
                     coverage_line_annotation,
                 ) {
                     (_, &LineAnnotation::Tested(_), Some(&false))
-                    | (FlakyPolicy::Tested, &LineAnnotation::FlakyTested(_), Some(&true)) => {
+                    | (FlakyPolicy::Tested, &LineAnnotation::FlakyTested(_), Some(&false)) => {
                         eprintln!(
                             "{}:{}: wrong TESTED coverage annotation",
                             file_name, line_number,
@@ -578,8 +578,7 @@ fn report_file_wrong_annotations(
 
                     (_, &LineAnnotation::NotTested(true), None) => {
                         eprintln!(
-                            "{}:{}: \
-                             explicit NOT TESTED coverage annotation for a non-executable line",
+                            "{}:{}: explicit NOT TESTED coverage annotation for a non-executable line",
                             file_name, line_number,
                         );
                         did_report_annotation = true;
@@ -587,8 +586,7 @@ fn report_file_wrong_annotations(
 
                     (_, &LineAnnotation::MaybeTested(true), None) => {
                         eprintln!(
-                            "{}:{}: \
-                             explicit MAYBE TESTED coverage annotation for a non-executable line",
+                            "{}:{}: explicit MAYBE TESTED coverage annotation for a non-executable line",
                             file_name, line_number,
                         );
                         did_report_annotation = true;
@@ -617,7 +615,7 @@ fn report_uncovered_file_annotations(
 }
 
 #[doc(hidden)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum FlakyPolicy {
     NotTested,
     MaybeTested,
