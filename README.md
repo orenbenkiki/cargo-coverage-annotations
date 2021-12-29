@@ -2,7 +2,7 @@
 
 [![Verified](https://github.com/orenbenkiki/cargo-coverage-annotations/actions/workflows/on_push.yml/badge.svg)](https://github.com/orenbenkiki/cargo-coverage-annotations/actions/workflows/on_push.yml) [![Monthly audit](https://github.com/orenbenkiki/cargo-coverage-annotations/actions/workflows/monthly_audit.yml/badge.svg)](https://github.com/orenbenkiki/cargo-coverage-annotations/actions/workflows/on_updated_dependencies.yml) [![Api Docs](https://docs.rs/cargo-coverage-annotations/badge.svg)](https://docs.rs/crate/cargo-coverage-annotations)
 
-Ensure annotations in code match actual coverage.
+Ensure the source code contains annotations that correctly reflect whether it is covered or not.
 
 ## Installing
 
@@ -11,6 +11,15 @@ To install:
 ```console
 cargo install cargo-coverage-annotations
 ```
+
+## Motivation
+
+Code coverage is important and there are many tools for computing and displaying it. This tool is for anyone who wants
+to see at a glance which code is/not covered, even when not using a dedicated coverage viewing tool, whenever looking at
+the source code itself. This has the downside that the developer needs to keep these annotations up-to-date (which this
+tools helps in ensuring). The upside is that making coverage explicit makes it more likely that code will be tested,
+exposes cases when code isn't reached even though tests that "should" be triggering it in fact aren't, and in general
+properly make code coverage into something the developer can't ignore.
 
 ## Running
 
@@ -45,9 +54,13 @@ TESTED` comments.
 Some files might not be tested at all. In this case, they must contain in one of their lines a `// FILE NOT TESTED` or
 `// FILE MAYBE TESTED` comment.
 
-Sometimes code lines are actually tested but are marked as uncovered by the coverage tool (no tool is perfect). To
-overcome this, you can mark a line (or a whole region) as `// APPEARS NOT TESTED`. This is treated exactly the same as
-`// NOT TESTED` lines, but it helps the developer reading the code later on.
+Sometimes code lines are actually tested but are not marked as such by the coverage tool (no tool is perfect). To
+overcome this, you can mark a line (or a region, or a while file) as `// FLAKY TESTED`. By default, this is treated
+exactly the same as `// MAYBE TESTED`. This can also be set explicitly by using `--flaky=maybe-tested`. You can override
+this using `--flaky=tested` which will complain about all the lines the coverage tool got wrong (as untested). More
+interestingly, you can use `--flaky=not-tested` to complain about all the lines the coverage tool got right (as tested),
+which is useful when checking if a new version of the tool has increased its accuracy. If it now (reliably) marks the
+lines as tested, than the `// FLAKY TESTED` annotation can be removed.
 
 Coverage annotations are only used for files in the `src` directory and `tests` directories. They ensure that when
 reading the code, one is aware of what is and is not covered by the tests. Of course, line coverage is only the most
