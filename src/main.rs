@@ -26,9 +26,6 @@
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::cast_possible_wrap)]
 
-#[macro_use]
-extern crate version;
-
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs::{self, File};
@@ -36,6 +33,9 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::vec::Vec;
 use xml::reader::{EventReader, XmlEvent};
+
+/// The current crate version: 0.4.2-dev
+const VERSION: &str = "0.4.2-dev";
 
 #[doc(hidden)]
 enum LineMark {
@@ -631,7 +631,7 @@ fn process_args() -> FlakyPolicy {
     for arg in args {
         match arg.as_str() {
             "--version" => {
-                println!("cargo-coverage-annotations {}", version!());
+                println!("cargo-coverage-annotations {}", VERSION);
                 std::process::exit(0);
             }
             "--flaky=not-tested" => {

@@ -13,10 +13,9 @@ dependencies = [
 
 [[package]]
 name = "cargo-coverage-annotations"
-version = "0.4.2"
+version = "0.4.2-dev"
 dependencies = [
  "regex",
- "version",
  "xml-rs",
 ]
 
@@ -42,12 +41,6 @@ name = "regex-syntax"
 version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
-
-[[package]]
-name = "version"
-version = "3.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a449064fee414fcc201356a3e6c1510f6c8829ed28bb06b91c54ebe208ce065"
 
 [[package]]
 name = "xml-rs"
