@@ -1,4 +1,4 @@
-# cargo-coverage-annotations v0.4.2-dev
+# cargo-coverage-annotations v0.4.2
 
 [![Verified](https://github.com/orenbenkiki/cargo-coverage-annotations/actions/workflows/on_push.yml/badge.svg)](https://github.com/orenbenkiki/cargo-coverage-annotations/actions/workflows/on_push.yml) [![Monthly audit](https://github.com/orenbenkiki/cargo-coverage-annotations/actions/workflows/monthly_audit.yml/badge.svg)](https://github.com/orenbenkiki/cargo-coverage-annotations/actions/workflows/on_updated_dependencies.yml) [![Api Docs](https://docs.rs/cargo-coverage-annotations/badge.svg)](https://docs.rs/crate/cargo-coverage-annotations)
 
