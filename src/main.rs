@@ -34,8 +34,8 @@ use std::path::{Path, PathBuf};
 use std::vec::Vec;
 use xml::reader::{EventReader, XmlEvent};
 
-/// The current crate version: 0.4.3-dev
-const VERSION: &str = "0.4.3-dev";
+/// The current crate version: 0.4.3
+const VERSION: &str = "0.4.3";
 
 #[doc(hidden)]
 enum LineMark {
