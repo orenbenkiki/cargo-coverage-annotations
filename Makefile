@@ -118,7 +118,7 @@ outdated: .make.outdated  ## check all dependencies are up-to-date
 audit: .make.audit  ## audit dependencies for bugs or security issues
 	
 .make.audit: .cargo/config.toml $(TOML_SOURCES)
-	cargo audit
+	cargo audit --ignore RUSTSEC-2022-0048
 	touch $@
 
 common: todo-x formatted smells udeps coverage-annotations doc
@@ -151,7 +151,7 @@ clobber:  ## remove all generated files
 	rm -rf .cargo target
 
 clean:  ## remove generated files except for dependencies
-	rm -f .make.* tags tarpaulin*
+	rm -f .make.* tags tarpaulin* cobertura.xml
 	rm -rf .cargo `find target -name '*clacks*'`
 
 .cargo/config.toml:

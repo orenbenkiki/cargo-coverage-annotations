@@ -142,18 +142,51 @@ fn collect_file_annotations(flaky_policy: FlakyPolicy, path: &Path) -> FileAnnot
     let mut is_file_maybe_tested = false;
     let mut is_file_flaky_tested = false;
     let mut line_annotations = Vec::new();
-    let untrusted_regex =
-        Regex::new(r"^(?:\s*\}(?:\s*\))*(?:\s*;)?|\s*(?:\}\s*)?else(?:\s*\{)?)?\s*(?://.*)?$")
-            .unwrap();
+    let untrusted_regex = Regex::new(
+        r"(?x)
+            ^
+            \s*
+            (?:
+                    \}
+                    \s*
+                    (?:
+                        \)\s*
+                    )*
+                    (?:
+                        ;\s*
+                    )
+                |
+                    (?:
+                        \}\s*
+                    )?
+                    else
+                    \s*
+                    (?:
+                        \{\s*
+                    )?
+                |
+                    \#
+                    !?
+                    \[.*\]\s*
+                |
+                    impl
+                    [\s<]
+                    .*
+            )?
+            (?:
+                /[/*].*
+            )?
+            $
+        ",
+    )
+    .unwrap();
     for (mut line_number, line) in file.lines().enumerate() {
         line_number += 1;
         let line_text = line.unwrap();
         let line_mark = extract_line_mark(path.to_str().unwrap(), line_number, line_text.as_ref());
         let (line_annotation, next_region_annotation) = match (line_mark, region_annotation) {
             (LineMark::None, region_annotation) => {
-                if untrusted_regex.is_match(line_text.as_ref()) {
-                    (LineAnnotation::MaybeTested(false), region_annotation)
-                } else if line_text.contains("unreachable!()") {
+                if line_text.contains("unreachable!()") {
                     (LineAnnotation::NotTested(false), region_annotation)
                 } else {
                     (region_annotation, region_annotation)
@@ -331,7 +364,11 @@ fn collect_file_annotations(flaky_policy: FlakyPolicy, path: &Path) -> FileAnnot
                 (region_annotation, region_annotation)
             }
         };
-        line_annotations.push(line_annotation);
+        line_annotations.push(if untrusted_regex.is_match(line_text.as_ref()) {
+            LineAnnotation::MaybeTested(false)
+        } else {
+            line_annotation
+        });
         region_annotation = next_region_annotation;
     }
     if is_file_maybe_tested || (is_file_flaky_tested && flaky_policy == FlakyPolicy::MaybeTested) {
@@ -644,7 +681,11 @@ fn process_args() -> FlakyPolicy {
                 flaky_policy = FlakyPolicy::Tested;
             }
             arg => {
-                eprintln!("{}: unknown flag \"{}\"; valid flags are --version and --flaky=not-tested/maybe-tested/tested", program, arg);
+                eprintln!(
+                    "{}: unknown flag \"{}\"; valid flags are --version and --flaky=not-tested/maybe-tested/tested",
+                    program,
+                    arg
+                );
                 std::process::exit(1);
             }
         }
