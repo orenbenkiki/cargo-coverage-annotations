@@ -453,7 +453,7 @@ fn collect_coverage_annotations(
     let file = BufReader::new(file);
     let parser = EventReader::new(file);
     let mut file_name = String::from("unknown");
-    let mut sources: Vec<String> = vec!["".to_string()];
+    let mut sources: Vec<String> = vec![String::new()];
     let mut collect_source = false;
     for event in parser {
         match event.unwrap() {
