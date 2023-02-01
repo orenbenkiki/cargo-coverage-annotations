@@ -409,8 +409,7 @@ fn extract_line_mark(path: &str, line_number: usize, line: &str) -> LineMark {
         || line.contains("/* FILE APPEARS NOT TESTED")
     {
         eprintln!(
-            "{}:{}: obsolete APPEARS TESTED directive, use FLAKY TESTED instead",
-            path, line_number
+            "{path}:{line_number}: obsolete APPEARS TESTED directive, use FLAKY TESTED instead"
         );
         LineMark::None
     } else if line.contains("// TESTED") || line.contains("/* TESTED") {
@@ -572,7 +571,7 @@ fn report_file_wrong_annotations(
     match *source_file_annotation {
         FileAnnotations::MaybeTested => false,
         FileAnnotations::NotTested => {
-            eprintln!("{}: wrong FILE NOT TESTED coverage annotation", file_name);
+            eprintln!("{file_name}: wrong FILE NOT TESTED coverage annotation");
             true
         }
         FileAnnotations::LineAnnotations(ref source_line_annotations) => {
@@ -589,43 +588,30 @@ fn report_file_wrong_annotations(
                 ) {
                     (_, &LineAnnotation::Tested(_), Some(&false))
                     | (FlakyPolicy::Tested, &LineAnnotation::FlakyTested(_), Some(&false)) => {
-                        eprintln!(
-                            "{}:{}: wrong TESTED coverage annotation",
-                            file_name, line_number,
-                        );
+                        eprintln!("{file_name}:{line_number}: wrong TESTED coverage annotation");
                         did_report_annotation = true;
                     }
 
                     (_, &LineAnnotation::NotTested(_), Some(&true))
                     | (FlakyPolicy::NotTested, &LineAnnotation::FlakyTested(_), Some(&true)) => {
                         eprintln!(
-                            "{}:{}: wrong NOT TESTED coverage annotation",
-                            file_name, line_number,
+                            "{file_name}:{line_number}: wrong NOT TESTED coverage annotation"
                         );
                         did_report_annotation = true;
                     }
 
                     (_, &LineAnnotation::Tested(true), None) => {
-                        eprintln!(
-                            "{}:{}: explicit TESTED coverage annotation for a non-executable line",
-                            file_name, line_number,
-                        );
+                        eprintln!("{file_name}:{line_number}: explicit TESTED coverage annotation for a non-executable line");
                         did_report_annotation = true;
                     }
 
                     (_, &LineAnnotation::NotTested(true), None) => {
-                        eprintln!(
-                            "{}:{}: explicit NOT TESTED coverage annotation for a non-executable line",
-                            file_name, line_number,
-                        );
+                        eprintln!("{file_name}:{line_number}: explicit NOT TESTED coverage annotation for a non-executable line");
                         did_report_annotation = true;
                     }
 
                     (_, &LineAnnotation::MaybeTested(true), None) => {
-                        eprintln!(
-                            "{}:{}: explicit MAYBE TESTED coverage annotation for a non-executable line",
-                            file_name, line_number,
-                        );
+                        eprintln!("{file_name}:{line_number}: explicit MAYBE TESTED coverage annotation for a non-executable line");
                         did_report_annotation = true;
                     }
 
@@ -645,7 +631,7 @@ fn report_uncovered_file_annotations(
     match *source_file_annotations {
         FileAnnotations::MaybeTested | FileAnnotations::NotTested => false,
         FileAnnotations::LineAnnotations(_) => {
-            eprintln!("{}: missing FILE NOT TESTED coverage annotation", file_name);
+            eprintln!("{file_name}: missing FILE NOT TESTED coverage annotation");
             true
         }
     }
@@ -668,7 +654,7 @@ fn process_args() -> FlakyPolicy {
     for arg in args {
         match arg.as_str() {
             "--version" => {
-                println!("cargo-coverage-annotations {}", VERSION);
+                println!("cargo-coverage-annotations {VERSION}");
                 std::process::exit(0);
             }
             "--flaky=not-tested" => {
@@ -681,11 +667,7 @@ fn process_args() -> FlakyPolicy {
                 flaky_policy = FlakyPolicy::Tested;
             }
             arg => {
-                eprintln!(
-                    "{}: unknown flag \"{}\"; valid flags are --version and --flaky=not-tested/maybe-tested/tested",
-                    program,
-                    arg
-                );
+                eprintln!("{program}: unknown flag \"{arg}\"; valid flags are --version and --flaky=not-tested/maybe-tested/tested");
                 std::process::exit(1);
             }
         }
