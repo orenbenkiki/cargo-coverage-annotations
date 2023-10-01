@@ -15,4 +15,4 @@ repository = "orenbenkiki/cargo-coverage-annotations"
 
 [dependencies]
 regex = "^1.8.1"
-xml-rs = "^0.8.16"
+xml-rs = "^0.8.19"
