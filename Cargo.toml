@@ -14,5 +14,5 @@ license = "GPL-3.0"
 repository = "orenbenkiki/cargo-coverage-annotations"
 
 [dependencies]
-regex = "^1.8.1"
-xml-rs = "^0.8.16"
+regex = "^1.9.6"
+xml-rs = "^0.8.19"
